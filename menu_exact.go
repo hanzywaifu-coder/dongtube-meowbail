@@ -4,62 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
 
 	"go.mau.fi/whatsmeow"
-	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
 
-// buildBizAdditionalNodes membangun XML stanza node <biz> yang diwajibkan oleh protokol WhatsApp
-// untuk merender tombol interaktif (native_flow, single_select, cta_url, dll)
-func buildBizAdditionalNodes() []waBinary.Node {
-	ts := strconv.FormatInt(time.Now().Unix()-77980457, 10)
-	return []waBinary.Node{
-		{
-			Tag: "biz",
-			Attrs: waBinary.Attrs{
-				"actual_actors":   "2",
-				"host_storage":    "2",
-				"privacy_mode_ts": ts,
-			},
-			Content: []waBinary.Node{
-				{
-					Tag: "engagement",
-					Attrs: waBinary.Attrs{
-						"customer_service_state": "open",
-						"conversation_state":     "open",
-					},
-				},
-				{
-					Tag: "interactive",
-					Attrs: waBinary.Attrs{
-						"type": "native_flow",
-						"v":    "1",
-					},
-					Content: []waBinary.Node{
-						{
-							Tag: "native_flow",
-							Attrs: waBinary.Attrs{
-								"name": "mixed",
-								"v":    "9",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-// SendExactA2UIMenu mengirim format menu exact A2UI BloksWidget + NativeFlow Buttons
-// lengkap dengan stanza XML biz node injection agar tombol benar-benar muncul di WhatsApp!
-func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbData []byte, botName string, ownerPhone string, sections []Section, uptimeStr string, cmdCount int, userName string) error {
+// SendExactDongtubeMenu mengirim menu interaktif persis 100% spesifikasi referensi:
+// - Header: LocationMessage (lat:0, long:0, jpegThumbnail)
+// - Body: "\u0000"
+// - Footer: "Dongtube"
+// - NativeFlow buttons: 4 buttons (empty, single_select kategori, single_select info, cta_url)
+// - limited_time_offer metadata
+// - bloksWidget type "im_a2ui" dengan Card, Divider, Button openUrl
+// - Injeksi <biz> XML node
+func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thumbData []byte, botName, ownerPhone string, uptimeStr string, cmdCount int, userName string, greeting string) error {
 	if userName == "" {
-		userName = "User"
+		userName = "Al"
 	}
 	if botName == "" {
 		botName = "Dongtube"
@@ -67,40 +29,46 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 	if ownerPhone == "" {
 		ownerPhone = "6283143961588"
 	}
+	if greeting == "" {
+		greeting = "Selamat Malam"
+	}
 
-	// 1. Format sections kategori
-	var catSections []map[string]interface{}
-	for _, sec := range sections {
-		var rows []map[string]interface{}
-		for _, r := range sec.Rows {
-			rows = append(rows, map[string]interface{}{
-				"title":       r.Title,
-				"description": r.Description,
-				"id":          r.ID,
-			})
-		}
-		catSections = append(catSections, map[string]interface{}{
-			"title":           sec.Title,
-			"highlight_label": "MORELA MENU",
-			"rows":            rows,
-		})
+	// 1. Buttons List persis referensi
+	categoryRows := []map[string]interface{}{
+		{"title": "ᴀɪ", "description": "3 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_ai"},
+		{"title": "ᴅᴏᴡɴʟᴏᴀᴅᴇʀ", "description": "12 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_downloader"},
+		{"title": "ꜱᴛɪᴄᴋᴇʀ", "description": "13 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_sticker"},
+		{"title": "ᴍᴀᴋᴇʀ", "description": "3 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_maker"},
+		{"title": "ᴛᴏᴏʟꜱ", "description": "26 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_tools"},
+		{"title": "ɢᴀᴍᴇꜱ", "description": "72 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_games"},
+		{"title": "ɴꜱꜰᴡ", "description": "40 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_nsfw"},
+		{"title": "ɪɴꜰᴏ", "description": "6 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_info"},
+		{"title": "ᴀᴅᴍɪɴ", "description": "24 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_admin"},
+		{"title": "ᴏᴡɴᴇʀ", "description": "41 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_owner"},
+		{"title": "ꜰᴜɴ", "description": "3 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_fun"},
 	}
 
 	catParamsJSON, _ := json.Marshal(map[string]interface{}{
-		"title":    "\x00",
-		"sections": catSections,
-		"icon":     "DEFAULT",
+		"title": "\u0000",
+		"sections": []map[string]interface{}{
+			{
+				"title":           "ᴋᴀᴛᴇɢᴏʀɪ",
+				"highlight_label": "ᴍᴏʀᴇʟᴀ ᴍᴇɴᴜ",
+				"rows":            categoryRows,
+			},
+		},
+		"icon": "DEFAULT",
 	})
 
 	infoParamsJSON, _ := json.Marshal(map[string]interface{}{
-		"title": "\x00",
+		"title": "\u0000",
 		"sections": []map[string]interface{}{
 			{
 				"title":           "ɪɴꜰᴏʀᴍᴀꜱɪ",
 				"highlight_label": "ɪɴꜰᴏʀᴍᴀꜱɪ",
 				"rows": []map[string]interface{}{
 					{"title": "ᴘɪɴɢ", "id": ".ping"},
-					{"title": "ᴏᴡɴᴇʀ", "id": ".owner"},
+					{"title": "ᴏᴡɴᴇʀ", "id": ".menu_owner"},
 				},
 			},
 		},
@@ -108,7 +76,7 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 	})
 
 	ctaParamsJSON, _ := json.Marshal(map[string]interface{}{
-		"display_text": "\x00",
+		"display_text": "\u0000",
 		"url":          fmt.Sprintf("https://wa.me/%s", ownerPhone),
 		"merchant_url": fmt.Sprintf("https://wa.me/%s", ownerPhone),
 		"icon":         "PROMOTION",
@@ -130,21 +98,21 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 		{Name: proto.String("cta_url"), ButtonParamsJSON: proto.String(string(ctaParamsJSON))},
 	}
 
-	// 2. Data BloksWidget UI
-	bloksText0 := fmt.Sprintf("Selamat Datang, %s!\n\n"+
+	// 2. BloksWidget A2UI JSON Data (Persis 100% referensi)
+	bloksText0 := fmt.Sprintf("%s, %s!\n\n"+
 		"╭┈┈⬡「 ɪɴꜰᴏ ʙᴏᴛ 」\n"+
 		"┃ ɴᴀᴍᴇ     : %s\n"+
-		"┃ ᴠᴇʀꜱɪᴏɴ  : v1.0.0\n"+
+		"┃ ᴠᴇʀꜱɪᴏɴ  : v0.0.1\n"+
 		"┃ ᴜᴘᴛɪᴍᴇ   : %s\n"+
 		"┃ ᴍᴏᴅᴇ     : ꜱᴇʟꜰ\n"+
 		"┃ ᴄᴏᴍᴍᴀɴᴅꜱ : %d\n"+
 		"╰┈┈┈┈┈┈┈┈⬡\n\n"+
 		"╭┈┈⬡「 ɪɴꜰᴏ ᴜꜱᴇʀ 」\n"+
 		"┃ ɴᴀᴍᴀ   : %s\n"+
-		"┃ ᴀᴋꜱᴇꜱ  : ᴏᴡɴᴇʀ\n"+
-		"┃ ʟɪᴍɪᴛ  : ᴜɴʟɪᴍɪᴛᴇᴅ\n"+
-		"┃ ᴅᴀꜰᴛᴀʀ : ꜱᴜᴅᴀʜ\n"+
-		"╰┈┈┈┈┈┈┈┈⬡", userName, botName, uptimeStr, cmdCount, userName)
+		"┃ ᴀᴋꜱᴇꜱ  :  ᴏᴡɴᴇʀ\n"+
+		"┃ ʟɪᴍɪᴛ  :  ᴜɴʟɪᴍɪᴛᴇᴅ\n"+
+		"┃ ᴅᴀꜰᴛᴀʀ :  ʙᴇʟᴜᴍ\n"+
+		"╰┈┈┈┈┈┈┈┈⬡", greeting, userName, botName, uptimeStr, cmdCount, userName)
 
 	bloksText4 := fmt.Sprintf("Halo, %s. Saya adalah %s sebuah bot asisten WhatsApp. Apakah ada yang bisa saya bantu? Silakan tekan tombol untuk menampilkan halaman menu berikutnya.", userName, botName)
 
@@ -175,7 +143,7 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 	}
 	bloksJSONBytes, _ := json.Marshal(bloksDataMap)
 
-	// 3. Header dengan LocationMessage & JPEGThumbnail persis referensi
+	// 3. Header LocationMessage
 	header := &waE2E.InteractiveMessage_Header{
 		HasMediaAttachment: proto.Bool(true),
 		Media: &waE2E.InteractiveMessage_Header_LocationMessage{
@@ -192,7 +160,7 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 	interactiveMsg := &waE2E.InteractiveMessage{
 		Header: header,
 		Body: &waE2E.InteractiveMessage_Body{
-			Text: proto.String("\x00"),
+			Text: proto.String("\u0000"),
 		},
 		Footer: &waE2E.InteractiveMessage_Footer{
 			Text: proto.String(botName),
@@ -222,7 +190,6 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 		InteractiveMessage: interactiveMsg,
 	}
 
-	// KUNCI UTAMA: Injeksi AdditionalNodes <biz> ke stanza XML pengiriman pesan
 	bizNodes := buildBizAdditionalNodes()
 	_, err := c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
 		AdditionalNodes: &bizNodes,
