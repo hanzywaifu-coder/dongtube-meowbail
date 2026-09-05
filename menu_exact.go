@@ -4,14 +4,59 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
+	"go.mau.fi/whatsmeow"
+	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
 
+// buildBizAdditionalNodes membangun XML stanza node <biz> yang diwajibkan oleh protokol WhatsApp
+// untuk merender tombol interaktif (native_flow, single_select, cta_url, dll)
+func buildBizAdditionalNodes() []waBinary.Node {
+	ts := strconv.FormatInt(time.Now().Unix()-77980457, 10)
+	return []waBinary.Node{
+		{
+			Tag: "biz",
+			Attrs: waBinary.Attrs{
+				"actual_actors":   "2",
+				"host_storage":    "2",
+				"privacy_mode_ts": ts,
+			},
+			Content: []waBinary.Node{
+				{
+					Tag: "engagement",
+					Attrs: waBinary.Attrs{
+						"customer_service_state": "open",
+						"conversation_state":     "open",
+					},
+				},
+				{
+					Tag: "interactive",
+					Attrs: waBinary.Attrs{
+						"type": "native_flow",
+						"v":    "1",
+					},
+					Content: []waBinary.Node{
+						{
+							Tag: "native_flow",
+							Attrs: waBinary.Attrs{
+								"name": "mixed",
+								"v":    "9",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 // SendExactA2UIMenu mengirim format menu exact A2UI BloksWidget + NativeFlow Buttons
-// sesuai spesifikasi https://cdn.dongtube.id/7e716445aee7.bin
+// lengkap dengan stanza XML biz node injection agar tombol benar-benar muncul di WhatsApp!
 func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbData []byte, botName string, ownerPhone string, sections []Section, uptimeStr string, cmdCount int, userName string) error {
 	if userName == "" {
 		userName = "User"
@@ -177,6 +222,10 @@ func (c *Client) SendExactA2UIMenu(ctx context.Context, chat types.JID, thumbDat
 		InteractiveMessage: interactiveMsg,
 	}
 
-	_, err := c.Client.SendMessage(ctx, chat, msg)
+	// KUNCI UTAMA: Injeksi AdditionalNodes <biz> ke stanza XML pengiriman pesan
+	bizNodes := buildBizAdditionalNodes()
+	_, err := c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
+		AdditionalNodes: &bizNodes,
+	})
 	return err
 }
