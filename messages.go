@@ -31,12 +31,43 @@ func (c *Client) SendText(ctx context.Context, chat types.JID, text string, opts
 func (c *Client) SendTextWithNewsletter(ctx context.Context, chat types.JID, text string) error {
 	msg := &waE2E.Message{
 		ExtendedTextMessage: &waE2E.ExtendedTextMessage{
-			Text: proto.String(text),
+			Text:        proto.String(text),
 			ContextInfo: buildNewsletterContext(c.config),
 		},
 	}
 
 	_, err := c.Client.SendMessage(ctx, chat, msg)
+	return err
+}
+
+// WrapDocument sends a document message with thumbnail + caption + newsletter context
+// This matches Baileys wrapDocument() behavior from the Node.js Dongtube Bot
+func (c *Client) WrapDocument(ctx context.Context, chat types.JID, caption string, docData []byte, fileName string, thumbData []byte) error {
+	resp, err := c.Client.Upload(ctx, docData, whatsmeow.MediaDocument)
+	if err != nil {
+		// Fallback: send as text with newsletter
+		return c.SendTextWithNewsletter(ctx, chat, caption)
+	}
+
+	docLen := uint64(len(docData))
+	msg := &waE2E.Message{
+		DocumentMessage: &waE2E.DocumentMessage{
+			URL:           &resp.URL,
+			Mimetype:      proto.String("image/png"),
+			FileName:      proto.String(fileName),
+			Caption:       proto.String(caption),
+			FileLength:    &docLen,
+			PageCount:     proto.Uint32(100),
+			FileEncSHA256: resp.FileEncSHA256,
+			FileSHA256:    resp.FileSHA256,
+			DirectPath:    &resp.DirectPath,
+			MediaKey:      resp.MediaKey,
+			JPEGThumbnail: thumbData,
+			ContextInfo:   buildNewsletterContext(c.config),
+		},
+	}
+
+	_, err = c.Client.SendMessage(ctx, chat, msg)
 	return err
 }
 
@@ -46,7 +77,6 @@ func (c *Client) SendButtons(ctx context.Context, chat types.JID, text string, b
 		return c.SendText(ctx, chat, text, opts...)
 	}
 
-	// Build ButtonsMessage
 	var waButtons []*waE2E.ButtonsMessage_Button
 	for i, btn := range buttons {
 		switch btn.Type {
@@ -146,12 +176,12 @@ func (c *Client) SendList(ctx context.Context, chat types.JID, title, descriptio
 
 	msg := &waE2E.Message{
 		ListMessage: &waE2E.ListMessage{
-			Title:      proto.String(title),
+			Title:       proto.String(title),
 			Description: proto.String(description),
-			ButtonText: proto.String(buttonText),
-			ListType:   waE2E.ListMessage_SINGLE_SELECT.Enum(),
-			Sections:   waSections,
-			FooterText: proto.String(""),
+			ButtonText:  proto.String(buttonText),
+			ListType:    waE2E.ListMessage_SINGLE_SELECT.Enum(),
+			Sections:    waSections,
+			FooterText:  proto.String(""),
 			ContextInfo: buildNewsletterContext(c.config),
 		},
 	}
@@ -398,7 +428,6 @@ func applyOptions(msg *waE2E.Message, opts *MessageOptions) *waE2E.Message {
 		return msg
 	}
 
-	// Apply mentions
 	if len(opts.Mentions) > 0 {
 		setMentions(msg, opts.Mentions)
 	}
