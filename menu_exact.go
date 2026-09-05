@@ -11,14 +11,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// SendExactDongtubeMenu mengirim menu interaktif persis 100% spesifikasi referensi:
-// - Header: LocationMessage (lat:0, long:0, jpegThumbnail)
-// - Body: "\u0000"
-// - Footer: "Dongtube"
-// - NativeFlow buttons: 4 buttons (empty, single_select kategori, single_select info, cta_url)
-// - limited_time_offer metadata
-// - bloksWidget type "im_a2ui" dengan Card, Divider, Button openUrl
-// - Injeksi <biz> XML node
+// SendExactDongtubeMenu mengirim menu interaktif tombol persis referensi 7e716445aee7.bin:
+// Memasukkan teks menu ke Body agar 100% terbaca di semua WhatsApp (Android, iOS, Web, Desktop),
+// plus 3 tombol native flow (single_select kategori, single_select info, cta_url owner)
+// dan locationMessage header dengan jpegThumbnail
 func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thumbData []byte, botName, ownerPhone string, uptimeStr string, cmdCount int, userName string, greeting string) error {
 	if userName == "" {
 		userName = "Al"
@@ -33,7 +29,7 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 		greeting = "Selamat Malam"
 	}
 
-	// 1. Buttons List persis referensi
+	// 1. Baris Kategori Dropdown 1
 	categoryRows := []map[string]interface{}{
 		{"title": "ᴀɪ", "description": "3 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_ai"},
 		{"title": "ᴅᴏᴡɴʟᴏᴀᴅᴇʀ", "description": "12 ᴄᴏᴍᴍᴀɴᴅ", "id": ".menu_downloader"},
@@ -49,7 +45,7 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 	}
 
 	catParamsJSON, _ := json.Marshal(map[string]interface{}{
-		"title": "\u0000",
+		"title": "ᴋᴀᴛᴇɢᴏʀɪ",
 		"sections": []map[string]interface{}{
 			{
 				"title":           "ᴋᴀᴛᴇɢᴏʀɪ",
@@ -60,23 +56,25 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 		"icon": "DEFAULT",
 	})
 
+	// 2. Baris Informasi Dropdown 2
 	infoParamsJSON, _ := json.Marshal(map[string]interface{}{
-		"title": "\u0000",
+		"title": "ɪɴꜰᴏʀᴍᴀꜱɪ",
 		"sections": []map[string]interface{}{
 			{
 				"title":           "ɪɴꜰᴏʀᴍᴀꜱɪ",
 				"highlight_label": "ɪɴꜰᴏʀᴍᴀꜱɪ",
 				"rows": []map[string]interface{}{
-					{"title": "ᴘɪɴɢ", "id": ".ping"},
-					{"title": "ᴏᴡɴᴇʀ", "id": ".menu_owner"},
+					{"title": "ᴘɪɴɢ", "description": "Cek kecepatan bot", "id": ".ping"},
+					{"title": "ᴏᴡɴᴇʀ", "description": "Menu khusus owner", "id": ".menu_owner"},
 				},
 			},
 		},
 		"icon": "REVIEW",
 	})
 
+	// 3. Tombol CTA URL
 	ctaParamsJSON, _ := json.Marshal(map[string]interface{}{
-		"display_text": "\u0000",
+		"display_text": "ᴏᴡɴᴇʀ",
 		"url":          fmt.Sprintf("https://wa.me/%s", ownerPhone),
 		"merchant_url": fmt.Sprintf("https://wa.me/%s", ownerPhone),
 		"icon":         "PROMOTION",
@@ -92,14 +90,13 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 	})
 
 	nativeButtons := []*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-		{Name: proto.String("")},
 		{Name: proto.String("single_select"), ButtonParamsJSON: proto.String(string(catParamsJSON))},
 		{Name: proto.String("single_select"), ButtonParamsJSON: proto.String(string(infoParamsJSON))},
 		{Name: proto.String("cta_url"), ButtonParamsJSON: proto.String(string(ctaParamsJSON))},
 	}
 
-	// 2. BloksWidget A2UI JSON Data (Persis 100% referensi)
-	bloksText0 := fmt.Sprintf("%s, %s!\n\n"+
+	// Teks Menu Tampil di Layar Chat
+	displayText := fmt.Sprintf("%s, %s!\n\n"+
 		"╭┈┈⬡「 ɪɴꜰᴏ ʙᴏᴛ 」\n"+
 		"┃ ɴᴀᴍᴇ     : %s\n"+
 		"┃ ᴠᴇʀꜱɪᴏɴ  : v0.0.1\n"+
@@ -112,40 +109,13 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 		"┃ ᴀᴋꜱᴇꜱ  :  ᴏᴡɴᴇʀ\n"+
 		"┃ ʟɪᴍɪᴛ  :  ᴜɴʟɪᴍɪᴛᴇᴅ\n"+
 		"┃ ᴅᴀꜰᴛᴀʀ :  ʙᴇʟᴜᴍ\n"+
-		"╰┈┈┈┈┈┈┈┈⬡", greeting, userName, botName, uptimeStr, cmdCount, userName)
+		"╰┈┈┈┈┈┈┈┈⬡\n\n"+
+		"Halo, %s. Saya adalah %s sebuah bot asisten WhatsApp. Apakah ada yang bisa saya bantu? Silakan tekan tombol untuk menampilkan halaman menu berikutnya.",
+		greeting, userName, botName, uptimeStr, cmdCount, userName, userName, botName)
 
-	bloksText4 := fmt.Sprintf("Halo, %s. Saya adalah %s sebuah bot asisten WhatsApp. Apakah ada yang bisa saya bantu? Silakan tekan tombol untuk menampilkan halaman menu berikutnya.", userName, botName)
-
-	bloksDataMap := map[string]interface{}{
-		"version": "v0.9",
-		"createSurface": map[string]interface{}{
-			"surfaceId": "starcore-widget=b4e9d374-935e-4f69-9329-73a548d05b67",
-			"catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
-			"components": []map[string]interface{}{
-				{"id": "root", "component": "Column", "children": []string{"card_2", "card_6", "button_8"}},
-				{"id": "text_0", "component": "Text", "text": bloksText0, "variant": "body"},
-				{"id": "column_1", "component": "Column", "children": []string{"text_0"}},
-				{"id": "card_2", "component": "Card", "child": "column_1"},
-				{"id": "divider_3", "component": "Divider"},
-				{"id": "text_4", "component": "Text", "text": bloksText4, "variant": "body"},
-				{"id": "column_5", "component": "Column", "children": []string{"divider_3", "text_4"}},
-				{"id": "card_6", "component": "Card", "child": "column_5"},
-				{"id": "text_7", "component": "Text", "text": "ᴏᴡɴᴇʀ", "variant": "body"},
-				{
-					"id": "button_8", "component": "Button", "child": "text_7", "variant": "primary",
-					"action": map[string]interface{}{
-						"call": "openUrl",
-						"args": map[string]interface{}{"url": fmt.Sprintf("https://wa.me/%s", ownerPhone)},
-					},
-				},
-			},
-		},
-	}
-	bloksJSONBytes, _ := json.Marshal(bloksDataMap)
-
-	// 3. Header LocationMessage
+	// Header LocationMessage
 	header := &waE2E.InteractiveMessage_Header{
-		HasMediaAttachment: proto.Bool(true),
+		HasMediaAttachment: proto.Bool(len(thumbData) > 0),
 		Media: &waE2E.InteractiveMessage_Header_LocationMessage{
 			LocationMessage: &waE2E.LocationMessage{
 				DegreesLatitude:  proto.Float64(0),
@@ -160,7 +130,7 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 	interactiveMsg := &waE2E.InteractiveMessage{
 		Header: header,
 		Body: &waE2E.InteractiveMessage_Body{
-			Text: proto.String("\u0000"),
+			Text: proto.String(displayText),
 		},
 		Footer: &waE2E.InteractiveMessage_Footer{
 			Text: proto.String(botName),
@@ -171,11 +141,6 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 				MessageParamsJSON: proto.String(string(offerParamsJSON)),
 			},
 		},
-		BloksWidget: &waE2E.InteractiveMessage_BloksWidget{
-			Uuid: proto.String("b4e9d374-935e-4f69-9329-73a548d05b67"),
-			Data: proto.String(string(bloksJSONBytes)),
-			Type: proto.String("im_a2ui"),
-		},
 		ContextInfo: &waE2E.ContextInfo{
 			MentionedJID:    []string{fmt.Sprintf("%s@s.whatsapp.net", ownerPhone)},
 			ForwardingScore: proto.Uint32(0),
@@ -184,10 +149,11 @@ func (c *Client) SendExactDongtubeMenu(ctx context.Context, chat types.JID, thum
 	}
 
 	msg := &waE2E.Message{
-		MessageContextInfo: &waE2E.MessageContextInfo{
-			MessageSecret: []byte("IXM8c2x6FioXJZLibSUFkhheds8R4KQtoWqKWvhwIkY="),
+		ViewOnceMessage: &waE2E.FutureProofMessage{
+			Message: &waE2E.Message{
+				InteractiveMessage: interactiveMsg,
+			},
 		},
-		InteractiveMessage: interactiveMsg,
 	}
 
 	bizNodes := buildBizAdditionalNodes()
