@@ -9,7 +9,6 @@ import (
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
-	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -380,28 +379,7 @@ func (c *Client) SendPoll(ctx context.Context, chat types.JID, name string, opti
 }
 
 // HandleButtonResponse checks if a message event is a button response
-func HandleButtonResponse(evt interface{}) (string, bool) {
-	e, ok := evt.(*events.Message)
-	if !ok {
-		return "", false
-	}
-
-	if e.Message.ButtonsResponseMessage != nil {
-		selectedID := e.Message.ButtonsResponseMessage.GetSelectedButtonID()
-		if selectedID != "" {
-			return selectedID, true
-		}
-	}
-
-	if e.Message.ListResponseMessage != nil {
-		singleSelect := e.Message.ListResponseMessage.GetSingleSelectReply()
-		if singleSelect != nil {
-			return singleSelect.GetSelectedRowID(), true
-		}
-	}
-
-	return "", false
-}
+// (Deprecated: implemented with nativeFlow in button_response.go)
 
 // Helper functions
 
