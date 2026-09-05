@@ -2,9 +2,6 @@ package meowbail
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -64,7 +61,7 @@ func (c *Client) SendNewsletterDocument(ctx context.Context, channelJID types.JI
 
 // SendInteractiveShopCard mengirim link etalase toko WhatsApp interaktif
 func (c *Client) SendInteractiveShopCard(ctx context.Context, chat types.JID, businessOwnerJID types.JID, bodyText, buttonText string, surfaceType int32) error {
-	btnParams := fmt.Sprintf(`{"display_text":"%s","surface":%d}`, buttonText, surfaceType)
+	btnParams := `{"display_text":"` + buttonText + `"}`
 
 	msg := &waE2E.Message{
 		InteractiveMessage: &waE2E.InteractiveMessage{
@@ -89,103 +86,4 @@ func (c *Client) SendInteractiveShopCard(ctx context.Context, chat types.JID, bu
 		AdditionalNodes: &bizNodes,
 	})
 	return err
-}
-
-// SendNativeFlowMultipleButtons mengirim template berisi berbagai aksi tombol (URL, Call, Copy, Single Select) sekaligus
-func (c *Client) SendNativeFlowMultipleButtons(ctx context.Context, chat types.JID, headerTitle, bodyText, footerText string, thumb []byte, buttons []*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton) error {
-	header := &waE2E.InteractiveMessage_Header{
-		Title: proto.String(headerTitle),
-	}
-
-	if len(thumb) > 0 {
-		header.HasMediaAttachment = proto.Bool(true)
-		header.Media = &waE2E.InteractiveMessage_Header_LocationMessage{
-			LocationMessage: &waE2E.LocationMessage{
-				DegreesLatitude:  proto.Float64(0),
-				DegreesLongitude: proto.Float64(0),
-				Name:             proto.String(headerTitle),
-				JPEGThumbnail:    thumb,
-			},
-		}
-	}
-
-	msg := &waE2E.Message{
-		InteractiveMessage: &waE2E.InteractiveMessage{
-			Header: header,
-			Body: &waE2E.InteractiveMessage_Body{
-				Text: proto.String(bodyText),
-			},
-			Footer: &waE2E.InteractiveMessage_Footer{
-				Text: proto.String(footerText),
-			},
-			InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
-				NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{
-					Buttons: buttons,
-				},
-			},
-		},
-	}
-
-	bizNodes := buildBizAdditionalNodes()
-	_, err := c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
-		AdditionalNodes: &bizNodes,
-	})
-	return err
-}
-
-// CreateNativeFlowURLButton helper pembuat tombol URL
-func CreateNativeFlowURLButton(displayText, url string) *waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton {
-	params, _ := json.Marshal(map[string]string{
-		"display_text": displayText,
-		"url":          url,
-		"merchant_url": url,
-	})
-	return &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-		Name:             proto.String("cta_url"),
-		ButtonParamsJSON: proto.String(string(params)),
-	}
-}
-
-// CreateNativeFlowCallButton helper pembuat tombol Panggil Telepon
-func CreateNativeFlowCallButton(displayText, phoneNumber string) *waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton {
-	params, _ := json.Marshal(map[string]string{
-		"display_text": displayText,
-		"phone_number": phoneNumber,
-	})
-	return &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-		Name:             proto.String("cta_call"),
-		ButtonParamsJSON: proto.String(string(params)),
-	}
-}
-
-// CreateNativeFlowCopyButton helper pembuat tombol Salin Kode
-func CreateNativeFlowCopyButton(displayText, codeToCopy string) *waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton {
-	params, _ := json.Marshal(map[string]string{
-		"display_text": displayText,
-		"code":         codeToCopy,
-	})
-	return &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-		Name:             proto.String("cta_copy"),
-		ButtonParamsJSON: proto.String(string(params)),
-	}
-}
-
-// CreateNativeFlowQuickReplyButton helper pembuat tombol Quick Reply ID
-func CreateNativeFlowQuickReplyButton(displayText, id string) *waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton {
-	params, _ := json.Marshal(map[string]string{
-		"display_text": displayText,
-		"id":           id,
-	})
-	return &waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
-		Name:             proto.String("quick_reply"),
-		ButtonParamsJSON: proto.String(string(params)),
-	}
-}
-
-// DelaySafe utilitas delay aman anti-rate limit
-func DelaySafe(duration time.Duration) {
-	if duration <= 0 {
-		duration = 500 * time.Millisecond
-	}
-	time.Sleep(duration)
 }
