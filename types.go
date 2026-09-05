@@ -81,6 +81,7 @@ type Client struct {
 	config       *Config
 	LIDResolver  *LIDResolver
 	RetryTracker *RetrySpiralingTracker
+	Store        *MemoryMessageStore
 }
 
 // Config contains configuration for the client

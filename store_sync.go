@@ -64,6 +64,26 @@ func (s *MemoryMessageStore) Get(id types.MessageID) *CachedMessage {
 	return s.messages[id]
 }
 
+// GetAlbumChildren mengambil semua pesan media anak yang berasosiasi dengan parent Album ID
+func (s *MemoryMessageStore) GetAlbumChildren(parentID types.MessageID) []*CachedMessage {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var children []*CachedMessage
+	for _, m := range s.messages {
+		if m.Message == nil || m.Message.MessageContextInfo == nil || m.Message.MessageContextInfo.MessageAssociation == nil {
+			continue
+		}
+		assoc := m.Message.MessageContextInfo.MessageAssociation
+		if assoc.ParentMessageKey != nil && assoc.ParentMessageKey.ID != nil {
+			if *assoc.ParentMessageKey.ID == string(parentID) {
+				children = append(children, m)
+			}
+		}
+	}
+	return children
+}
+
 // AttachMessageStore menghubungkan auto-caching event pesan ke whatsmeow client
 func (c *Client) AttachMessageStore(store *MemoryMessageStore) {
 	c.AddEventHandler(func(rawEvt interface{}) {
