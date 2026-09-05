@@ -73,11 +73,14 @@ func (c *Client) SendExactDongtubeStickerPack(ctx context.Context, chat types.JI
 	}
 
 	attrs := waBinary.Attrs{"type": "media"}
-	_, err := c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
-		AdditionalNodes: &[]waBinary.Node{{
-			Tag:   "additional_attributes",
-			Attrs: attrs,
-		}},
-	})
+	_, err := c.Client.SendMessage(ctx, chat, msg)
+	if err != nil {
+		_, err = c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
+			AdditionalNodes: &[]waBinary.Node{{
+				Tag:   "additional_attributes",
+				Attrs: attrs,
+			}},
+		})
+	}
 	return err
 }
