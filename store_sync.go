@@ -3,6 +3,7 @@ package meowbail
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -92,6 +93,16 @@ func (c *Client) AttachMessageStore(store *MemoryMessageStore) {
 			if evt.Info.ID == "" || evt.Message == nil {
 				return
 			}
+
+			// Cek apakah pesan membawa MessageAssociation ke parent album
+			if evt.Message.MessageContextInfo != nil && evt.Message.MessageContextInfo.MessageAssociation != nil {
+				assoc := evt.Message.MessageContextInfo.MessageAssociation
+				if assoc.ParentMessageKey != nil && assoc.ParentMessageKey.ID != nil {
+					log.Printf("[store] Stored child message %s associated with parent %s (hasImg=%v)",
+						evt.Info.ID, *assoc.ParentMessageKey.ID, evt.Message.ImageMessage != nil)
+				}
+			}
+
 			store.Put(&CachedMessage{
 				ID:        evt.Info.ID,
 				Chat:      evt.Info.Chat,
