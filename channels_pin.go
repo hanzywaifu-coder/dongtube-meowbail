@@ -2,7 +2,6 @@ package meowbail
 
 import (
 	"context"
-	"fmt"
 
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
