@@ -227,6 +227,48 @@ class DongtubeMeowbail extends EventEmitter {
         }
     }
 
+    async sendWithAntiBan(jid, text, sendFn) {
+        // Simulasi presence composing
+        this.emit('presence.update', { id: jid, presence: 'composing' });
+        // Hitung delay manusiawi
+        const delay = Math.min(2500, Math.max(800, (text || '').length * 35 + Math.floor(Math.random() * 200)));
+        await new Promise(r => setTimeout(r, delay));
+        this.emit('presence.update', { id: jid, presence: 'paused' });
+        return await sendFn();
+    }
+
+    async sendOrderReview(jid, orderData = {}) {
+        const {
+            title = 'Konfirmasi Pesanan',
+            currency = 'IDR',
+            amount = '10000',
+            orderId = 'ORD_' + Date.now()
+        } = orderData;
+
+        const payload = {
+            interactiveMessage: {
+                header: { title },
+                body: { text: `Total Tagihan: ${currency} ${amount}\nID Pesanan: ${orderId}` },
+                footer: { text: 'Dongtube Payment System' },
+                nativeFlowMessage: {
+                    buttons: [
+                        {
+                            name: 'review_and_pay',
+                            buttonParamsJson: JSON.stringify({
+                                type: 'review_and_pay',
+                                currency,
+                                total_amount: { value: amount, offset: 100 },
+                                order_id: orderId
+                            })
+                        }
+                    ]
+                }
+            }
+        };
+
+        return await this.relayMessage(jid, { viewOnceMessage: { message: payload } });
+    }
+
     async sendMessage(jid, content, options = {}) {
         if (content.groupStatusMessage) {
             return await this.sendGroupStatus(jid, content.groupStatusMessage);

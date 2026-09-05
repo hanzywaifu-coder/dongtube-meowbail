@@ -51,6 +51,13 @@ export interface CarouselCard {
     buttons?: any[];
 }
 
+export interface OrderOptions {
+    title?: string;
+    currency?: string;
+    amount?: string;
+    orderId?: string;
+}
+
 export class DongtubeMeowbail {
     constructor(options?: SocketConfig);
     createBuilder(): MessageBuilder;
@@ -59,6 +66,8 @@ export class DongtubeMeowbail {
     sendInteractiveMenu(jid: string, menuOptions: InteractiveMenuOptions): Promise<any>;
     sendCarousel(jid: string, text: string, cards: CarouselCard[]): Promise<any>;
     sendAlbum(jid: string, items: any[]): Promise<any>;
+    sendOrderReview(jid: string, orderData: OrderOptions): Promise<any>;
+    sendWithAntiBan(jid: string, text: string, sendFn: () => Promise<any>): Promise<any>;
     sendMessage(jid: string, content: any, options?: any): Promise<any>;
 }
 
