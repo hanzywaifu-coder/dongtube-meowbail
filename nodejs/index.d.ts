@@ -30,8 +30,22 @@ export interface SocketConfig {
     newsletterName?: string;
 }
 
+export class MessageBuilder {
+    title(t: string): this;
+    body(b: string): this;
+    footer(f: string): this;
+    document(pathOrBuffer: Buffer | string, fileName?: string, mimetype?: string): this;
+    newsletter(jid: string, name?: string): this;
+    addReply(displayText: string, id: string): this;
+    addUrl(displayText: string, url: string): this;
+    addCopy(displayText: string, copyCode: string): this;
+    addSelection(title: string, sections?: Section[]): this;
+    build(): any;
+}
+
 export class DongtubeMeowbail {
     constructor(options?: SocketConfig);
+    createBuilder(): MessageBuilder;
     requestPairingCode(phoneNumber: string, customCode?: string): Promise<string>;
     sendGroupStatus(groupJid: string, content: any): Promise<any>;
     sendInteractiveMenu(jid: string, menuOptions: InteractiveMenuOptions): Promise<any>;

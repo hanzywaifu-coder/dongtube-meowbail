@@ -1,10 +1,118 @@
-/**
- * dongtube-meowbail (Node.js SDK)
- * Unified WhatsApp SDK bringing whatsmeow architecture and Baileys rich feature set into one API.
- */
-
 const EventEmitter = require('events');
 
+/**
+ * MessageBuilder - Fluent API Builder untuk membuat pesan interaktif WhatsApp
+ * Terinspirasi dari nixcode / ourin-baileys message builder
+ */
+class MessageBuilder {
+    constructor() {
+        this._body = '';
+        this._footer = '';
+        this._title = '';
+        this._headerDoc = null;
+        this._headerImg = null;
+        this._buttons = [];
+        this._contextInfo = {};
+    }
+
+    title(t) {
+        this._title = t;
+        return this;
+    }
+
+    body(b) {
+        this._body = b;
+        return this;
+    }
+
+    footer(f) {
+        this._footer = f;
+        return this;
+    }
+
+    document(pathOrBuffer, fileName = 'Document', mimetype = 'image/png') {
+        this._headerDoc = {
+            mimetype,
+            fileName,
+            fileLength: 10000,
+            pageCount: 100,
+            jpegThumbnail: Buffer.isBuffer(pathOrBuffer) ? pathOrBuffer : null
+        };
+        return this;
+    }
+
+    newsletter(jid, name = 'Dongtube Saluran') {
+        this._contextInfo = {
+            isForwarded: true,
+            forwardingScore: 9999,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: jid,
+                newsletterName: name
+            }
+        };
+        return this;
+    }
+
+    addReply(displayText, id) {
+        this._buttons.push({
+            name: 'quick_reply',
+            buttonParamsJson: JSON.stringify({ display_text: displayText, id })
+        });
+        return this;
+    }
+
+    addUrl(displayText, url) {
+        this._buttons.push({
+            name: 'cta_url',
+            buttonParamsJson: JSON.stringify({ display_text: displayText, url, merchant_url: url })
+        });
+        return this;
+    }
+
+    addCopy(displayText, copyCode) {
+        this._buttons.push({
+            name: 'cta_copy',
+            buttonParamsJson: JSON.stringify({ display_text: displayText, copy_code: copyCode })
+        });
+        return this;
+    }
+
+    addSelection(title, sections = []) {
+        this._buttons.push({
+            name: 'single_select',
+            buttonParamsJson: JSON.stringify({ title, sections })
+        });
+        return this;
+    }
+
+    build() {
+        const interactiveMessage = {
+            header: {
+                title: this._title,
+                hasMediaAttachment: !!this._headerDoc || !!this._headerImg,
+                documentMessage: this._headerDoc
+            },
+            body: { text: this._body },
+            footer: { text: this._footer },
+            nativeFlowMessage: {
+                buttons: this._buttons
+            },
+            contextInfo: this._contextInfo
+        };
+
+        return {
+            viewOnceMessage: {
+                message: {
+                    interactiveMessage
+                }
+            }
+        };
+    }
+}
+
+/**
+ * DongtubeMeowbail Client
+ */
 class DongtubeMeowbail extends EventEmitter {
     constructor(options = {}) {
         super();
@@ -20,11 +128,10 @@ class DongtubeMeowbail extends EventEmitter {
         this.isConnected = false;
     }
 
-    /**
-     * Request pairing code with optional custom 8-character code
-     * @param {string} phoneNumber 
-     * @param {string} [customCode] 
-     */
+    createBuilder() {
+        return new MessageBuilder();
+    }
+
     async requestPairingCode(phoneNumber, customCode = null) {
         const cleanNumber = (phoneNumber || '').replace(/[^0-9]/g, '');
         if (!cleanNumber) {
@@ -51,11 +158,6 @@ class DongtubeMeowbail extends EventEmitter {
         return formatted;
     }
 
-    /**
-     * Kirim status atau story langsung ke dalam Grup (SWGC / groupStatusMessageV2)
-     * @param {string} groupJid 
-     * @param {object} content 
-     */
     async sendGroupStatus(groupJid, content = {}) {
         if (!groupJid.endsWith('@g.us')) {
             throw new Error('JID harus berupa grup (@g.us)');
@@ -70,101 +172,25 @@ class DongtubeMeowbail extends EventEmitter {
         return await this.relayMessage(groupJid, payload);
     }
 
-    /**
-     * Kirim Interactive Menu dengan Dokumen + Tombol Native Flow (Single Select, CTA URL, Copy Text)
-     * Persis format alipclutch-baileys & evernight ai
-     * @param {string} jid 
-     * @param {object} menuOptions 
-     */
     async sendInteractiveMenu(jid, menuOptions = {}) {
-        const {
-            body = '',
-            footer = '',
-            thumbnail = null,
-            fileName = 'Dongtube Menu',
-            sections = [],
-            ctaUrl = null,
-            ctaText = 'Info Saluran',
-            copyCode = null,
-            copyText = 'Salin Kode'
-        } = menuOptions;
+        const builder = new MessageBuilder();
+        if (menuOptions.body) builder.body(menuOptions.body);
+        if (menuOptions.footer) builder.footer(menuOptions.footer);
+        if (menuOptions.thumbnail) builder.document(menuOptions.thumbnail, menuOptions.fileName || 'Menu');
+        if (this.options.newsletterJid) builder.newsletter(this.options.newsletterJid, this.options.newsletterName);
 
-        const buttons = [];
-
-        // 1. Dropdown Single Select
-        if (sections && sections.length > 0) {
-            buttons.push({
-                name: 'single_select',
-                buttonParamsJson: JSON.stringify({
-                    title: 'Selection',
-                    sections: sections
-                })
-            });
+        if (menuOptions.sections && menuOptions.sections.length > 0) {
+            builder.addSelection('Selection', menuOptions.sections);
+        }
+        if (menuOptions.ctaUrl) {
+            builder.addUrl(menuOptions.ctaText || 'Visit', menuOptions.ctaUrl);
+        }
+        if (menuOptions.copyCode) {
+            builder.addCopy(menuOptions.copyText || 'Copy', menuOptions.copyCode);
         }
 
-        // 2. Tombol CTA URL
-        if (ctaUrl) {
-            buttons.push({
-                name: 'cta_url',
-                buttonParamsJson: JSON.stringify({
-                    display_text: ctaText,
-                    url: ctaUrl,
-                    merchant_url: ctaUrl
-                })
-            });
-        }
-
-        // 3. Tombol Salin Kode
-        if (copyCode) {
-            buttons.push({
-                name: 'cta_copy',
-                buttonParamsJson: JSON.stringify({
-                    display_text: copyText,
-                    copy_code: copyCode
-                })
-            });
-        }
-
-        const interactiveMessage = {
-            header: {
-                title: '',
-                hasMediaAttachment: true,
-                documentMessage: {
-                    mimetype: 'image/png',
-                    fileName: fileName,
-                    fileLength: 10000,
-                    pageCount: 100,
-                    jpegThumbnail: thumbnail
-                }
-            },
-            body: { text: body },
-            footer: { text: footer },
-            nativeFlowMessage: {
-                buttons: buttons
-            }
-        };
-
-        if (this.options.newsletterJid) {
-            interactiveMessage.contextInfo = {
-                isForwarded: true,
-                forwardingScore: 9999,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: this.options.newsletterJid,
-                    newsletterName: this.options.newsletterName || 'Dongtube Channel'
-                }
-            };
-        }
-
-        // Bungkus viewOnceMessage persis Baileys
-        const message = {
-            viewOnceMessage: {
-                message: {
-                    interactiveMessage: interactiveMessage
-                }
-            }
-        };
-
-        return await this.relayMessage(jid, message);
+        const msg = builder.build();
+        return await this.relayMessage(jid, msg);
     }
 
     async relayMessage(jid, message, options = {}) {
@@ -188,5 +214,6 @@ function makeWASocket(config = {}) {
 module.exports = {
     makeWASocket,
     DongtubeMeowbail,
+    MessageBuilder,
     default: makeWASocket
 };
