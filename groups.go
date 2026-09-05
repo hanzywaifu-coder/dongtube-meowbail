@@ -80,9 +80,11 @@ func (c *Client) IsBotAdmin(ctx context.Context, groupJID types.JID) (bool, erro
 		return false, err
 	}
 
+	// Check both ID (phone) and LID (linked device)
 	botJID := c.Client.Store.ID.User
+	botLID := c.Client.Store.LID.User
 	for _, p := range groupInfo.Participants {
-		if p.JID.User == botJID && p.IsAdmin {
+		if (p.JID.User == botJID || p.JID.User == botLID) && p.IsAdmin {
 			return true, nil
 		}
 	}
