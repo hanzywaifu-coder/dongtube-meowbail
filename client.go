@@ -95,10 +95,21 @@ func ParseMessageEvent(evt interface{}) *MessageEvent {
 	}
 
 	text := ""
-	if e.Message.GetConversation() != "" {
-		text = e.Message.GetConversation()
-	} else if e.Message.ExtendedTextMessage != nil {
-		text = e.Message.ExtendedTextMessage.GetText()
+	msg := e.Message
+	if msg.GetConversation() != "" {
+		text = msg.GetConversation()
+	} else if msg.ExtendedTextMessage != nil {
+		text = msg.ExtendedTextMessage.GetText()
+	} else if msg.ImageMessage != nil {
+		text = msg.ImageMessage.GetCaption()
+	} else if msg.VideoMessage != nil {
+		text = msg.VideoMessage.GetCaption()
+	} else if msg.DocumentMessage != nil {
+		text = msg.DocumentMessage.GetCaption()
+	} else if msg.AudioMessage != nil {
+		text = "" // audio has no text
+	} else if msg.StickerMessage != nil {
+		text = "" // sticker has no text
 	}
 
 	return &MessageEvent{
