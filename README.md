@@ -14,6 +14,8 @@ Dibuat dari nol untuk menjadi pustaka WhatsApp nomor 1, independen, modern, dan 
 | **Konsumsi Memori (RAM)** | ~20 MB | ~120 MB+ | **~20 MB (Go) / Optimal (Node)** |
 | **Custom Pairing Code (8 Chars)** | ❌ Terbatas auto | ✅ Ya (`alipclutch`) | ✅ **Ya (Kustom 8 Karakter)** |
 | **Status Grup / Story Grup (SWGC)** | ❌ Manual proto | ✅ Ya (`groupStatusMessageV2`) | ✅ **Bawaan & Otomatis** |
+| **LID ↔ Phone Number Resolver** | ❌ Terpisah | ⚠️ Parsial | ✅ **Built-in `LIDResolver`** |
+| **Retry Spiral Loop Detector** | ❌ Tidak ada | ⚠️ Plugin terpisah | ✅ **Built-in `RetryTracker`** |
 | **Anti-Ban Presence & Human Entropy** | ❌ Tidak ada | ⚠️ Plugin terpisah | ✅ **Built-in `SendWithAntiBan`** |
 | **Order & Payment Review NativeFlow** | ❌ Tidak ada | ⚠️ Parsial | ✅ **Built-in Helper** |
 | **Carousel & Slider Cards** | ❌ Manual proto | ✅ Ya | ✅ **SendCarousel Helper** |

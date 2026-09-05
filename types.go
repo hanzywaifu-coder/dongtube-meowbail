@@ -78,7 +78,9 @@ type MediaUpload struct {
 // Client wraps whatsmeow client with Baileys-style features
 type Client struct {
 	*whatsmeow.Client
-	config *Config
+	config       *Config
+	LIDResolver  *LIDResolver
+	RetryTracker *RetrySpiralingTracker
 }
 
 // Config contains configuration for the client

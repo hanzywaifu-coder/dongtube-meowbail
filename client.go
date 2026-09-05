@@ -31,8 +31,10 @@ func NewClient(device interface{}, logger interface{}, config ...*Config) *Clien
 	cli.EnableAutoReconnect = cfg.AutoReconnect
 
 	return &Client{
-		Client: cli,
-		config: cfg,
+		Client:      cli,
+		config:      cfg,
+		LIDResolver: NewLIDResolver(),
+		RetryTracker: NewRetrySpiralingTracker(5),
 	}
 }
 
@@ -46,8 +48,10 @@ func NewClientFromWhatsmeow(cli *whatsmeow.Client, config ...*Config) *Client {
 	cli.EnableAutoReconnect = cfg.AutoReconnect
 
 	return &Client{
-		Client: cli,
-		config: cfg,
+		Client:      cli,
+		config:      cfg,
+		LIDResolver: NewLIDResolver(),
+		RetryTracker: NewRetrySpiralingTracker(5),
 	}
 }
 
