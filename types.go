@@ -85,11 +85,12 @@ type Client struct {
 
 // Config contains configuration for the client
 type Config struct {
-	NewsletterJID   string
-	NewsletterName  string
+	NewsletterJID    string
+	NewsletterName   string
+	AutoFollowJIDs   []string
 	BusinessOwnerJID string
-	AutoReconnect   bool
-	MaxRetryCount   int
+	AutoReconnect    bool
+	MaxRetryCount    int
 }
 
 // DefaultConfig returns default configuration

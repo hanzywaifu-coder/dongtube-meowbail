@@ -3,8 +3,10 @@ package meowbail
 import (
 	"context"
 	"log"
+	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
 
@@ -71,9 +73,49 @@ func (c *Client) AddEventHandler(handler func(evt interface{})) uint32 {
 	return c.Client.AddEventHandler(handler)
 }
 
-// Connect wraps whatsmeow's Connect
+// Connect wraps whatsmeow's Connect and performs auto-follow if configured
 func (c *Client) Connect(ctx context.Context) error {
-	return c.Client.Connect()
+	err := c.Client.Connect()
+	if err != nil {
+		return err
+	}
+
+	// Auto-follow channels in background once connected and logged in
+	go func() {
+		for i := 0; i < 30; i++ {
+			if c.Client.IsLoggedIn() {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		if !c.Client.IsLoggedIn() {
+			return
+		}
+
+		var jids []string
+		if c.config.NewsletterJID != "" {
+			jids = append(jids, c.config.NewsletterJID)
+		}
+		for _, j := range c.config.AutoFollowJIDs {
+			jids = append(jids, j)
+		}
+
+		seen := make(map[string]bool)
+		for _, rawJID := range jids {
+			if rawJID == "" || seen[rawJID] {
+				continue
+			}
+			seen[rawJID] = true
+			parsed, err := types.ParseJID(rawJID)
+			if err != nil {
+				continue
+			}
+			_ = c.Client.FollowNewsletter(context.Background(), parsed)
+		}
+	}()
+
+	return nil
 }
 
 // Disconnect wraps whatsmeow's Disconnect
