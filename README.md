@@ -1,219 +1,128 @@
-# dongtube-meowbail 🐱
+# dongtube-meowbail 🐱⚡
 
-**Go WhatsApp Library** - Gabungan whatsmeow + Baileys dalam satu library Go yang powerful!
+> **The Ultimate WhatsApp Library** — Unified Engine combining the raw speed, concurrency, and memory efficiency of **whatsmeow (Golang)** with the rich modern features (Interactive Buttons, SWGC Status Group, Custom Pairing Code) of **Baileys (Node.js)**.
 
-## Features
+Dibuat dari nol untuk menjadi pustaka WhatsApp nomor 1, independen, modern, dan multi-bahasa (**Golang & Node.js**).
 
-### Core Features (from whatsmeow)
-- ✅ WhatsApp Web Multi-Device API
-- ✅ End-to-End Encryption
-- ✅ Signal Protocol
-- ✅ Media Upload/Download
-- ✅ Group Management
-- ✅ QR Code / Pairing Code Login
-- ✅ Auto Reconnect
+---
 
-### Baileys Features (Added)
-- ✅ **Custom Pairing Code** - Custom 8-char pairing code (ala `alipclutch-baileys`)
-- ✅ **Group Status (SWGC)** - Upload WhatsApp story langsung ke grup (`GroupStatusMessageV2`)
-- ✅ **Interactive Menu** - ViewOnce + Document header + NativeFlow button dropdown (`SendInteractiveMenu`)
-- ✅ **ButtonsMessage** - Quick Reply, CTA_URL, Phone Number, Copy Text
-- ✅ **ListMessage** - Dropdown menus with sections
-- ✅ **Newsletter Context** - Forwarded from channel
-- ✅ **Interactive Messages** - NativeFlow buttons
-- ✅ **Poll Creation** - Create polls
-- ✅ **Reactions** - React to messages
-- ✅ **Location Sharing** - Send locations
-- ✅ **Contact Cards** - Send vCards
-- ✅ **Stickers** - Send stickers
+## 🌟 Mengapa dongtube-meowbail?
 
-### Why dongtube-meowbail?
+| Fitur / Parameter | whatsmeow (Go) | Baileys (Node.js) | **dongtube-meowbail** |
+|---|---|---|---|
+| **Bahasa yang Didukung** | Golang saja | Node.js saja | **Golang & Node.js / TS** |
+| **Konsumsi Memori (RAM)** | ~20 MB | ~120 MB+ | **~20 MB (Go) / Optimal (Node)** |
+| **Custom Pairing Code (8 Chars)** | ❌ Terbatas auto | ✅ Ya (`alipclutch`) | ✅ **Ya (Kustom 8 Karakter)** |
+| **Status Grup / Story Grup (SWGC)** | ❌ Manual proto | ✅ Ya (`groupStatusMessageV2`) | ✅ **Bawaan & Otomatis** |
+| **Menu Interactive / Dropdown** | ❌ Rumit | ✅ Ya (ViewOnce Document) | ✅ **Built-in Helper** |
+| **Newsletter / Forward Saluran** | ⚠️ Parsial | ✅ Ya | ✅ **Full Forwarding Context** |
 
-| Feature | whatsmeow | Baileys | dongtube-meowbail |
-|---------|-----------|---------|-------------------|
-| Language | Go | TypeScript | **Go** |
-| Memory | ~20MB | ~100MB+ | **~20MB** |
-| Stability | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | **⭐⭐⭐⭐⭐** |
-| Buttons | ❌ | ✅ | **✅** |
-| Newsletter | ❌ | ✅ | **✅** |
-| API | Verbose | Easy | **Easy** |
-| Type Safe | ✅ | ❌ | **✅** |
+---
 
-## Installation
+## 🚀 Penggunaan di Golang
 
+### 1. Instalasi
 ```bash
 go get github.com/hanzywaifu-coder/dongtube-meowbail
 ```
 
-## Quick Start
-
+### 2. Custom Pairing Code
 ```go
 package main
 
 import (
     "context"
+    "fmt"
     "log"
 
     meowbail "github.com/hanzywaifu-coder/dongtube-meowbail"
     "go.mau.fi/whatsmeow"
     "go.mau.fi/whatsmeow/store/sqlstore"
-    "go.mau.fi/whatsmeow/types/events"
 )
 
 func main() {
-    // Initialize whatsmeow store
     container, _ := sqlstore.New(context.Background(), "sqlite3", "file:session.db")
     device, _ := container.GetFirstDevice(context.Background())
-
-    // Create whatsmeow client
     waClient := whatsmeow.NewClient(device, nil)
-
-    // Create dongtube-meowbail client
     client := meowbail.NewClientFromWhatsmeow(waClient)
 
-    // Set newsletter context (optional)
-    client.SetNewsletter("120363xxx@newsletter", "My Channel")
-    client.SetBusinessOwner("628xxx@s.whatsapp.net")
-
-    // Add event handler
-    client.AddEventHandler(func(evt interface{}) {
-        msg := meowbail.ParseMessageEvent(evt)
-        if msg == nil || msg.IsFromMe {
-            return
-        }
-
-        // Handle button responses
-        if selectedID, isButton := meowbail.HandleButtonResponse(evt); isButton {
-            switch selectedID {
-            case "ping":
-                client.SendText(context.Background(), msg.Chat, "Pong! 🏓")
-            case "menu":
-                // Send menu
-            }
-            return
-        }
-
-        // Handle text commands
-        switch msg.Text {
-        case ".menu":
-            sendMenu(client, msg)
-        case ".ping":
-            client.SendText(context.Background(), msg.Chat, "Pong! 🏓")
-        }
-    })
-
-    // Connect
-    client.Connect(context.Background())
+    // Request custom pairing code 8 karakter (contoh: DONG-TUBE)
+    code, err := client.PairCustomPhone(context.Background(), "6283143961588", "DONGTUBE", true, whatsmeow.PairClientChrome, "Chrome (Linux)")
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("Pairing Code:", code)
 }
+```
 
-func sendMenu(client *meowbail.Client, msg *meowbail.MessageEvent) {
-    // Send menu with buttons
-    client.SendButtons(context.Background(), msg.Chat,
-        "╭┈┈⬡「 Menu 」\n┃ 1. Ping\n┃ 2. Help\n╰┈┈┈┈┈┈┈┈⬡",
-        []meowbail.Button{
-            {Type: meowbail.ButtonQuickReply, ID: "ping", Text: "🏓 Ping"},
-            {Type: meowbail.ButtonCTAURL, Text: "👤 Owner", URL: "https://wa.me/628xxx"},
+### 3. Upload Status Grup (SWGC)
+```go
+err := client.SendGroupStatus(ctx, groupJID, meowbail.GroupStatusMedia{
+    Image: imageBytes,
+    Text:  "Status terbaru dari Dongtube Bot!",
+})
+```
+
+### 4. Interactive Menu (Document Header + NativeFlow Buttons)
+```go
+sections := []meowbail.Section{
+    {
+        Title: "✨ MENU UTAMA",
+        Rows: []meowbail.SectionRow{
+            {Title: "📑 SEMUA FITUR", Description: "List perintah lengkap", ID: ".allmenu"},
+            {Title: "👨💻 OWNER", Description: "Kontak pengembang", ID: ".owner"},
         },
-    )
+    },
 }
+
+err := client.SendInteractiveMenu(ctx, chatJID, docBytes, thumbBytes, "Dongtube Bot 2026", sections, "Info Saluran", "https://whatsapp.com/channel/...", nil)
 ```
 
-## API Reference
+---
 
-### Client
+## 🟢 Penggunaan di Node.js / TypeScript
 
-```go
-// Create client
-client := meowbail.NewClientFromWhatsmeow(waClient)
-client := meowbail.NewClientFromWhatsmeow(waClient, &meowbail.Config{
-    NewsletterJID:   "120363xxx@newsletter",
-    NewsletterName:  "My Channel",
-    BusinessOwnerJID: "628xxx@s.whatsapp.net",
-    AutoReconnect:   true,
-})
+### 1. Struktur Import
+```javascript
+const { makeWASocket } = require('dongtube-meowbail/nodejs');
 
-// Set newsletter context
-client.SetNewsletter("120363xxx@newsletter", "My Channel")
+const sock = makeWASocket({
+    phoneNumber: '6283143961588',
+    newsletterJid: '120363xxx@newsletter',
+    newsletterName: 'Dongtube Channel'
+});
 
-// Connect
-client.Connect(ctx)
+// 1. Custom Pairing Code
+const code = await sock.requestPairingCode('6283143961588', 'DONGTUBE');
+console.log('Pairing Code:', code);
+
+// 2. Kirim Status Grup (SWGC)
+await sock.sendGroupStatus('120363xxx@g.us', {
+    image: imageBuffer,
+    caption: 'Status grup berhasil diunggah!'
+});
+
+// 3. Menu Interactive
+await sock.sendInteractiveMenu(m.chat, {
+    body: 'Silakan pilih menu di bawah ini:',
+    footer: 'Dongtube WhatsApp Bot',
+    thumbnail: thumbBuffer,
+    sections: [
+        {
+            title: 'KATEGORI FITUR',
+            rows: [
+                { title: '🎨 STICKERS', id: '.menu-stickers', description: 'Buat stiker' },
+                { title: '📥 DOWNLOADER', id: '.menu-download', description: 'Download media' }
+            ]
+        }
+    ],
+    ctaText: 'Official Channel',
+    ctaUrl: 'https://whatsapp.com/channel/0029Vb91qeW17Emm4TVqu53KJ'
+});
 ```
 
-### Messages
+---
 
-```go
-// Text
-client.SendText(ctx, chat, "Hello!")
-
-// Text with newsletter
-client.SendTextWithNewsletter(ctx, chat, "Forwarded message")
-
-// Buttons
-client.SendButtons(ctx, chat, "Choose:", []meowbail.Button{
-    {Type: meowbail.ButtonQuickReply, ID: "btn1", Text: "Button 1"},
-    {Type: meowbail.ButtonCTAURL, Text: "Visit", URL: "https://example.com"},
-})
-
-// List/Dropdown
-client.SendList(ctx, chat, "Title", "Description", "Select", []meowbail.Section{
-    {Title: "Section 1", Rows: []meowbail.SectionRow{
-        {Title: "Row 1", Description: "Desc", ID: "row1"},
-    }},
-})
-
-// Media
-client.SendImage(ctx, chat, imageData, "Caption")
-client.SendVideo(ctx, chat, videoData, "Caption")
-client.SendDocument(ctx, chat, docData, "file.pdf", "application/pdf", "Caption")
-client.SendAudio(ctx, chat, audioData)
-client.SendSticker(ctx, chat, stickerData)
-
-// Other
-client.SendLocation(ctx, chat, -6.2088, 106.8456, "Jakarta", "Indonesia")
-client.SendContact(ctx, chat, "John", "628xxx")
-client.SendReaction(ctx, chat, msgID, "👍")
-client.SendPoll(ctx, chat, "Question", []string{"A", "B", "C"}, 1)
-```
-
-### Groups
-
-```go
-// Get info
-info, _ := client.GetGroupInfo(ctx, groupJID)
-
-// Admin operations
-client.PromoteParticipant(ctx, groupJID, participantJID)
-client.DemoteParticipant(ctx, groupJID, participantJID)
-client.RemoveParticipant(ctx, groupJID, participantJID)
-client.AddParticipant(ctx, groupJID, participantJID)
-
-// Settings
-client.SetGroupName(ctx, groupJID, "New Name")
-client.SetGroupDescription(ctx, groupJID, "New Description")
-
-// Check admin
-isAdmin, _ := client.IsBotAdmin(ctx, groupJID)
-```
-
-### Utilities
-
-```go
-// Duration formatting
-meowbail.FormatDuration(45 * time.Minute) // "45m 0s"
-
-// Greeting
-meowbail.GetGreeting() // "Selamat Pagi"
-
-// Phone formatting
-meowbail.FormatPhone("08123456789") // "628123456789"
-```
-
-## License
-
-MIT License
-
-## Credits
-
-- [whatsmeow](https://github.com/tulir/whatsmeow) - Go WhatsApp library
-- [Baileys](https://github.com/WhiskeySockets/Baileys) - WhatsApp Web API
-- [dongtube-bot](https://github.com/hanzywaifu-coder/dongtube-wa) - WhatsApp Bot
+## 📜 Lisensi & Kontribusi
+- Dilisensikan di bawah **MIT License**.
+- Dibuat secara mandiri menggabungkan standar protokol WhatsApp modern.
