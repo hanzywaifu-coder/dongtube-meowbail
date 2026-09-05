@@ -66,6 +66,17 @@ func (c *Client) SendRawCDNMenu(ctx context.Context, chat types.JID, thumbBytes 
 				Type: proto.String("im_a2ui"),
 			},
 			ContextInfo: &waE2E.ContextInfo{
+				StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+				Participant:   proto.String("0@s.whatsapp.net"),
+				RemoteJID:     proto.String("status@broadcast"),
+				QuotedMessage: &waE2E.Message{
+					LocationMessage: &waE2E.LocationMessage{
+						DegreesLatitude:  proto.Float64(0),
+						DegreesLongitude: proto.Float64(0),
+						Name:             proto.String("Dongtube Bot Assistant"),
+						JPEGThumbnail:    thumbBytes,
+					},
+				},
 				MentionedJID:    []string{"6283143961588@s.whatsapp.net"},
 				ForwardingScore: proto.Uint32(0),
 				IsForwarded:     proto.Bool(false),
