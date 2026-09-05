@@ -14,6 +14,9 @@
 - ✅ Auto Reconnect
 
 ### Baileys Features (Added)
+- ✅ **Custom Pairing Code** - Custom 8-char pairing code (ala `alipclutch-baileys`)
+- ✅ **Group Status (SWGC)** - Upload WhatsApp story langsung ke grup (`GroupStatusMessageV2`)
+- ✅ **Interactive Menu** - ViewOnce + Document header + NativeFlow button dropdown (`SendInteractiveMenu`)
 - ✅ **ButtonsMessage** - Quick Reply, CTA_URL, Phone Number, Copy Text
 - ✅ **ListMessage** - Dropdown menus with sections
 - ✅ **Newsletter Context** - Forwarded from channel
