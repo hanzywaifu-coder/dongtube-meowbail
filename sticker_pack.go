@@ -25,10 +25,13 @@ func (c *Client) SendStickerPackFromMedia(ctx context.Context, chat types.JID, s
 		publisher = "Dongtube"
 	}
 
-	// Upload stiker media ke server WhatsApp
-	uploaded, err := c.UploadMedia(ctx, stickerWebpData, whatsmeow.MediaImage)
+	// Upload stiker media ke server WhatsApp menggunakan media type yang tepat
+	uploaded, err := c.UploadMedia(ctx, stickerWebpData, whatsmeow.MediaStickerPack)
 	if err != nil {
-		return fmt.Errorf("upload sticker pack: %w", err)
+		uploaded, err = c.UploadMedia(ctx, stickerWebpData, whatsmeow.MediaImage)
+		if err != nil {
+			return fmt.Errorf("upload sticker pack: %w", err)
+		}
 	}
 
 	h := sha256.Sum256(stickerWebpData)
