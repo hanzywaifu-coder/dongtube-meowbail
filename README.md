@@ -14,6 +14,8 @@ Dibuat dari nol untuk menjadi pustaka WhatsApp nomor 1, independen, modern, dan 
 | **Konsumsi Memori (RAM)** | ~20 MB | ~120 MB+ | **~20 MB (Go) / Optimal (Node)** |
 | **Custom Pairing Code (8 Chars)** | ❌ Terbatas auto | ✅ Ya (`alipclutch`) | ✅ **Ya (Kustom 8 Karakter)** |
 | **Status Grup / Story Grup (SWGC)** | ❌ Manual proto | ✅ Ya (`groupStatusMessageV2`) | ✅ **Bawaan & Otomatis** |
+| **Carousel & Slider Cards** | ❌ Manual proto | ✅ Ya | ✅ **SendCarousel Helper** |
+| **Multi-Media Album** | ❌ Manual proto | ✅ Ya | ✅ **SendAlbum Helper** |
 | **Menu Interactive / Dropdown** | ❌ Rumit | ✅ Ya (ViewOnce Document) | ✅ **Built-in Helper** |
 | **Newsletter / Forward Saluran** | ⚠️ Parsial | ✅ Ya | ✅ **Full Forwarding Context** |
 

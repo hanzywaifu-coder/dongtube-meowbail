@@ -199,6 +199,34 @@ class DongtubeMeowbail extends EventEmitter {
         return { key: { remoteJid: jid, id: messageId, fromMe: true }, message };
     }
 
+    async sendCarousel(jid, text, cards = []) {
+        const payload = {
+            interactiveMessage: {
+                body: { text },
+                carouselMessage: {
+                    cards: cards.map(c => ({
+                        header: {
+                            title: c.title || '',
+                            hasMediaAttachment: !!c.image
+                        },
+                        body: { text: c.body || '' },
+                        footer: { text: c.footer || '' },
+                        nativeFlowMessage: {
+                            buttons: c.buttons || []
+                        }
+                    }))
+                }
+            }
+        };
+        return await this.relayMessage(jid, { viewOnceMessage: { message: payload } });
+    }
+
+    async sendAlbum(jid, items = []) {
+        for (const item of items) {
+            await this.sendMessage(jid, item);
+        }
+    }
+
     async sendMessage(jid, content, options = {}) {
         if (content.groupStatusMessage) {
             return await this.sendGroupStatus(jid, content.groupStatusMessage);

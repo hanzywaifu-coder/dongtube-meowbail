@@ -43,12 +43,22 @@ export class MessageBuilder {
     build(): any;
 }
 
+export interface CarouselCard {
+    title?: string;
+    body?: string;
+    footer?: string;
+    image?: Buffer | string;
+    buttons?: any[];
+}
+
 export class DongtubeMeowbail {
     constructor(options?: SocketConfig);
     createBuilder(): MessageBuilder;
     requestPairingCode(phoneNumber: string, customCode?: string): Promise<string>;
     sendGroupStatus(groupJid: string, content: any): Promise<any>;
     sendInteractiveMenu(jid: string, menuOptions: InteractiveMenuOptions): Promise<any>;
+    sendCarousel(jid: string, text: string, cards: CarouselCard[]): Promise<any>;
+    sendAlbum(jid: string, items: any[]): Promise<any>;
     sendMessage(jid: string, content: any, options?: any): Promise<any>;
 }
 
