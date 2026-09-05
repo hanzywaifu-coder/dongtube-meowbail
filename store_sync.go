@@ -72,13 +72,36 @@ func (s *MemoryMessageStore) GetAlbumChildren(parentID types.MessageID) []*Cache
 
 	var children []*CachedMessage
 	for _, m := range s.messages {
-		if m.Message == nil || m.Message.MessageContextInfo == nil || m.Message.MessageContextInfo.MessageAssociation == nil {
+		if m.Message == nil {
 			continue
 		}
-		assoc := m.Message.MessageContextInfo.MessageAssociation
-		if assoc.ParentMessageKey != nil && assoc.ParentMessageKey.ID != nil {
-			if *assoc.ParentMessageKey.ID == string(parentID) {
+
+		// 1. Cek di MessageContextInfo.MessageAssociation
+		if m.Message.MessageContextInfo != nil && m.Message.MessageContextInfo.MessageAssociation != nil {
+			assoc := m.Message.MessageContextInfo.MessageAssociation
+			if assoc.ParentMessageKey != nil && assoc.ParentMessageKey.ID != nil {
+				if *assoc.ParentMessageKey.ID == string(parentID) {
+					children = append(children, m)
+					continue
+				}
+			}
+		}
+
+		// 2. Cek di ImageMessage.ContextInfo.StanzaID / Quoted
+		if m.Message.ImageMessage != nil && m.Message.ImageMessage.ContextInfo != nil {
+			ctx := m.Message.ImageMessage.ContextInfo
+			if ctx.StanzaID != nil && *ctx.StanzaID == string(parentID) {
 				children = append(children, m)
+				continue
+			}
+		}
+
+		// 3. Cek di ExtendedTextMessage.ContextInfo
+		if m.Message.ExtendedTextMessage != nil && m.Message.ExtendedTextMessage.ContextInfo != nil {
+			ctx := m.Message.ExtendedTextMessage.ContextInfo
+			if ctx.StanzaID != nil && *ctx.StanzaID == string(parentID) {
+				children = append(children, m)
+				continue
 			}
 		}
 	}
