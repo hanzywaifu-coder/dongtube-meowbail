@@ -25,6 +25,11 @@ func (c *Client) BlockContact(ctx context.Context, jid types.JID, block bool) er
 	return err
 }
 
+// GetBlocklist mengambil seluruh daftar kontak yang sedang diblokir
+func (c *Client) GetBlocklist(ctx context.Context) (*types.Blocklist, error) {
+	return c.Client.GetBlocklist(ctx)
+}
+
 // CreateSubgroupInCommunity membuat grup anak langsung di dalam komunitas
 func (c *Client) CreateSubgroupInCommunity(ctx context.Context, name string, communityParentJID types.JID, participants []types.JID) (*types.GroupInfo, error) {
 	req := whatsmeow.ReqCreateGroup{
