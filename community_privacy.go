@@ -40,6 +40,26 @@ func (c *Client) CreateSubgroupInCommunity(ctx context.Context, name string, com
 	return c.Client.CreateGroup(ctx, req)
 }
 
+// CreateCommunity membuat Komunitas (Parent Group) baru di WhatsApp
+func (c *Client) CreateCommunity(ctx context.Context, name, description string) (*types.GroupInfo, error) {
+	req := whatsmeow.ReqCreateGroup{
+		Name: name,
+		GroupParent: types.GroupParent{
+			IsParent: true,
+		},
+	}
+	info, err := c.Client.CreateGroup(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if description != "" && info != nil {
+		_ = c.Client.SetGroupTopic(ctx, info.JID, "", "", description)
+	}
+
+	return info, nil
+}
+
 // LinkSubgroupToCommunity menghubungkan grup biasa ke dalam komunitas
 func (c *Client) LinkSubgroupToCommunity(ctx context.Context, communityJID types.JID, groupJID types.JID) error {
 	return c.Client.LinkGroup(ctx, communityJID, groupJID)
