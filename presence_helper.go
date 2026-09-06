@@ -44,3 +44,10 @@ func (c *Client) SetBotPresence(ctx context.Context, isAvailable bool) error {
 	}
 	return c.Client.SendPresence(ctx, state)
 }
+
+// SubscribePresence meminta server WhatsApp mengirimkan update presensi/online/lastseen dari kontak tertentu
+// Parity dengan Baileys presenceSubscribe(toJid)
+func (c *Client) SubscribePresence(ctx context.Context, targetJID types.JID) error {
+	return c.Client.SubscribePresence(ctx, targetJID)
+}
+
