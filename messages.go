@@ -206,7 +206,7 @@ func (c *Client) SendList(ctx context.Context, chat types.JID, title, descriptio
 
 // SendImage sends an image message
 func (c *Client) SendImage(ctx context.Context, chat types.JID, data []byte, caption string, opts ...*MessageOptions) error {
-	resp, err := c.Client.Upload(ctx, data, whatsmeow.MediaImage)
+	resp, err := c.UploadMedia(ctx, data, whatsmeow.MediaImage)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func (c *Client) SendImage(ctx context.Context, chat types.JID, data []byte, cap
 
 // SendDocument sends a document message
 func (c *Client) SendDocument(ctx context.Context, chat types.JID, data []byte, filename, mimetype, caption string, opts ...*MessageOptions) error {
-	resp, err := c.Client.Upload(ctx, data, whatsmeow.MediaDocument)
+	resp, err := c.UploadMedia(ctx, data, whatsmeow.MediaDocument)
 	if err != nil {
 		return err
 	}
@@ -257,7 +257,7 @@ func (c *Client) SendDocument(ctx context.Context, chat types.JID, data []byte, 
 
 // SendVideo sends a video message
 func (c *Client) SendVideo(ctx context.Context, chat types.JID, data []byte, caption string, opts ...*MessageOptions) error {
-	resp, err := c.Client.Upload(ctx, data, whatsmeow.MediaVideo)
+	resp, err := c.UploadMedia(ctx, data, whatsmeow.MediaVideo)
 	if err != nil {
 		return err
 	}
@@ -282,7 +282,7 @@ func (c *Client) SendVideo(ctx context.Context, chat types.JID, data []byte, cap
 
 // SendAudio sends an audio message
 func (c *Client) SendAudio(ctx context.Context, chat types.JID, data []byte, opts ...*MessageOptions) error {
-	resp, err := c.Client.Upload(ctx, data, whatsmeow.MediaAudio)
+	resp, err := c.UploadMedia(ctx, data, whatsmeow.MediaAudio)
 	if err != nil {
 		return err
 	}
@@ -306,10 +306,11 @@ func (c *Client) SendAudio(ctx context.Context, chat types.JID, data []byte, opt
 
 // SendSticker sends a sticker message
 func (c *Client) SendSticker(ctx context.Context, chat types.JID, data []byte, opts ...*MessageOptions) error {
-	resp, err := c.Client.Upload(ctx, data, whatsmeow.MediaImage)
+	resp, err := c.UploadMedia(ctx, data, whatsmeow.MediaImage)
 	if err != nil {
 		return err
 	}
+
 
 	msg := &waE2E.Message{
 		StickerMessage: &waE2E.StickerMessage{
