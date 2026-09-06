@@ -54,6 +54,31 @@ func IsDM(jid types.JID) bool {
 	return jid.Server == types.DefaultUserServer || jid.Server == "s.whatsapp.net"
 }
 
+// IsNewsletter checks if a JID is a channel/newsletter
+func IsNewsletter(jid types.JID) bool {
+	return jid.Server == types.NewsletterServer || strings.HasSuffix(jid.String(), "@newsletter")
+}
+
+// IsStatusBroadcast checks if a JID is status broadcast
+func IsStatusBroadcast(jid types.JID) bool {
+	return jid.Server == types.BroadcastServer && jid.User == "status"
+}
+
+// IsMetaAI checks if a JID is Meta AI
+func IsMetaAI(jid types.JID) bool {
+	return jid.Server == "bot" || jid.User == "13135550002"
+}
+
+// IsLID checks if a JID is a LID (Linked Identity)
+func IsLID(jid types.JID) bool {
+	return jid.Server == "lid"
+}
+
+// NormalizeUserJID converts any user JID to standard s.whatsapp.net without device suffix
+func NormalizeUserJID(jid types.JID) types.JID {
+	return jid.ToNonAD()
+}
+
 // GetPhoneFromJID extracts phone number from JID
 func GetPhoneFromJID(jid types.JID) string {
 	return jid.User
