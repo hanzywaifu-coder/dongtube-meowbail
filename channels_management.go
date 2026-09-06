@@ -83,6 +83,18 @@ func (c *Client) NewsletterUpdate(ctx context.Context, jid types.JID, name, desc
 	return err
 }
 
+// NewsletterDelete menghapus Saluran/Newsletter WhatsApp secara permanen (hanya untuk Owner saluran)
+func (c *Client) NewsletterDelete(ctx context.Context, jid types.JID) error {
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+	}
+
+	// Mex query ID for DELETE (xwa2_newsletter_delete_v2)
+	const queryDeleteNewsletter = "30062808666639665"
+	_, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryDeleteNewsletter, variables)
+	return err
+}
+
 // NewsletterMarkViewed menandai postingan saluran telah dibaca/dilihat
 func (c *Client) NewsletterMarkViewed(ctx context.Context, newsletterJID types.JID, serverIDs []types.MessageServerID) error {
 	return c.Client.NewsletterMarkViewed(ctx, newsletterJID, serverIDs)
