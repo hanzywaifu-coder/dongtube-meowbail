@@ -76,6 +76,16 @@ func (c *Client) NewsletterSubscribeLiveUpdates(ctx context.Context, jid types.J
 	return c.Client.NewsletterSubscribeLiveUpdates(ctx, jid)
 }
 
+// NewsletterGetMessages mengambil riwayat postingan pesan dari saluran
+func (c *Client) NewsletterGetMessages(ctx context.Context, jid types.JID, count int) ([]*types.NewsletterMessage, error) {
+	if count <= 0 {
+		count = 20
+	}
+	return c.Client.GetNewsletterMessages(ctx, jid, &whatsmeow.GetNewsletterMessagesParams{
+		Count: count,
+	})
+}
+
 // FormatMention membersihkan teks dan menghasilkan tag string @user dan slice MentionedJID
 func FormatMention(textWithAt string, participants []types.GroupParticipant) (cleanText string, mentionedJIDs []string) {
 	for _, p := range participants {
