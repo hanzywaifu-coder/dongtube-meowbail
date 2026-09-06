@@ -10,7 +10,10 @@ import (
 
 // SendWithAntiBan mengirim pesan dengan simulasi presence (mengetik) dan jeda alami manusia
 func (c *Client) SendWithAntiBan(ctx context.Context, chat types.JID, text string, sendFn func() error) error {
-	engine := core.NewAntiBanEngine(core.DefaultAntiBanConfig())
+	engine := c.AntiBanEngine
+	if engine == nil {
+		engine = core.NewAntiBanEngine(core.DefaultAntiBanConfig())
+	}
 
 	// 1. Cek rate limit token bucket
 	allowed, wait := engine.AllowSend(chat.String())
@@ -30,3 +33,4 @@ func (c *Client) SendWithAntiBan(ctx context.Context, chat types.JID, text strin
 
 	return sendFn()
 }
+

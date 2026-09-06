@@ -5,12 +5,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/hanzywaifu-coder/dongtube-meowbail/core"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
+
 
 // NewClient creates a new dongtube-meowbail client
 func NewClient(device interface{}, logger interface{}, config ...*Config) *Client {
@@ -36,11 +38,12 @@ func NewClient(device interface{}, logger interface{}, config ...*Config) *Clien
 
 	store := NewMemoryMessageStore(5000)
 	c := &Client{
-		Client:       cli,
-		config:       cfg,
-		LIDResolver:  NewLIDResolver(),
-		RetryTracker: NewRetrySpiralingTracker(5),
-		Store:        store,
+		Client:        cli,
+		config:        cfg,
+		LIDResolver:   NewLIDResolver(),
+		RetryTracker:  NewRetrySpiralingTracker(5),
+		Store:         store,
+		AntiBanEngine: core.NewAntiBanEngine(core.DefaultAntiBanConfig()),
 	}
 	c.AttachMessageStore(store)
 	return c
@@ -57,15 +60,17 @@ func NewClientFromWhatsmeow(cli *whatsmeow.Client, config ...*Config) *Client {
 
 	store := NewMemoryMessageStore(5000)
 	c := &Client{
-		Client:       cli,
-		config:       cfg,
-		LIDResolver:  NewLIDResolver(),
-		RetryTracker: NewRetrySpiralingTracker(5),
-		Store:        store,
+		Client:        cli,
+		config:        cfg,
+		LIDResolver:   NewLIDResolver(),
+		RetryTracker:  NewRetrySpiralingTracker(5),
+		Store:         store,
+		AntiBanEngine: core.NewAntiBanEngine(core.DefaultAntiBanConfig()),
 	}
 	c.AttachMessageStore(store)
 	return c
 }
+
 
 // SetNewsletter sets the newsletter context for all messages
 func (c *Client) SetNewsletter(jid, name string) {

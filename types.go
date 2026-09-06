@@ -3,11 +3,13 @@ package meowbail
 import (
 	"time"
 
+	"github.com/hanzywaifu-coder/dongtube-meowbail/core"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
+
 
 
 // Button types
@@ -78,11 +80,13 @@ type MediaUpload struct {
 // Client wraps whatsmeow client with Baileys-style features
 type Client struct {
 	*whatsmeow.Client
-	config       *Config
-	LIDResolver  *LIDResolver
-	RetryTracker *RetrySpiralingTracker
-	Store        *MemoryMessageStore
+	config        *Config
+	LIDResolver   *LIDResolver
+	RetryTracker  *RetrySpiralingTracker
+	Store         *MemoryMessageStore
+	AntiBanEngine *core.AntiBanEngine
 }
+
 
 // Config contains configuration for the client
 type Config struct {
