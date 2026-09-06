@@ -110,3 +110,43 @@ func (c *Client) SendAICodeResponse(ctx context.Context, chat types.JID, title, 
 	_, err := c.Client.SendMessage(ctx, chat, botMsg)
 	return err
 }
+
+// SendAILatexResponse mengirim pesan formula matematika / LaTeX khas Meta AI
+func (c *Client) SendAILatexResponse(ctx context.Context, chat types.JID, text, expression string) error {
+	latexSubMsgType := waAICommonDeprecated.AIRichResponseSubMessageType_AI_RICH_RESPONSE_LATEX
+
+	submessages := []*waAICommonDeprecated.AIRichResponseSubMessage{
+		{
+			MessageType: &latexSubMsgType,
+			LatexMetadata: &waAICommonDeprecated.AIRichResponseLatexMetadata{
+				Text: proto.String(text),
+				Expressions: []*waAICommonDeprecated.AIRichResponseLatexMetadata_AIRichResponseLatexExpression{
+					{
+						LatexExpression: proto.String(expression),
+					},
+				},
+			},
+		},
+	}
+
+	richMsgType := waAICommonDeprecated.AIRichResponseMessageType_AI_RICH_RESPONSE_TYPE_STANDARD
+	botMsg := &waE2E.Message{
+		BotForwardedMessage: &waE2E.FutureProofMessage{
+			Message: &waE2E.Message{
+				RichResponseMessage: &waE2E.AIRichResponseMessage{
+					MessageType: &richMsgType,
+					Submessages: submessages,
+					ContextInfo: &waE2E.ContextInfo{
+						IsForwarded: proto.Bool(true),
+						ForwardedAiBotMessageInfo: &waAICommon.ForwardedAIBotMessageInfo{
+							BotJID: proto.String("867051314767696@bot"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := c.Client.SendMessage(ctx, chat, botMsg)
+	return err
+}

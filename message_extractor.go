@@ -36,6 +36,44 @@ func ExtractText(msg *waE2E.Message) string {
 	if msg.ListResponseMessage != nil && msg.ListResponseMessage.SingleSelectReply != nil && msg.ListResponseMessage.SingleSelectReply.SelectedRowID != nil {
 		return *msg.ListResponseMessage.SingleSelectReply.SelectedRowID
 	}
+	if msg.TemplateButtonReplyMessage != nil && msg.TemplateButtonReplyMessage.SelectedID != nil {
+		return *msg.TemplateButtonReplyMessage.SelectedID
+	}
+	if msg.InteractiveResponseMessage != nil {
+		if native := msg.InteractiveResponseMessage.GetNativeFlowResponseMessage(); native != nil && native.ParamsJSON != nil {
+			return *native.ParamsJSON
+		}
+		if body := msg.InteractiveResponseMessage.GetBody(); body != nil && body.Text != nil {
+			return *body.Text
+		}
+	}
+	if msg.PollCreationMessage != nil && msg.PollCreationMessage.Name != nil {
+		return *msg.PollCreationMessage.Name
+	}
+	if msg.PollCreationMessageV2 != nil && msg.PollCreationMessageV2.Name != nil {
+		return *msg.PollCreationMessageV2.Name
+	}
+	if msg.PollCreationMessageV3 != nil && msg.PollCreationMessageV3.Name != nil {
+		return *msg.PollCreationMessageV3.Name
+	}
+	if msg.EventMessage != nil && msg.EventMessage.Name != nil {
+		return *msg.EventMessage.Name
+	}
+	if msg.ViewOnceMessage != nil && msg.ViewOnceMessage.Message != nil {
+		return ExtractText(msg.ViewOnceMessage.Message)
+	}
+	if msg.ViewOnceMessageV2 != nil && msg.ViewOnceMessageV2.Message != nil {
+		return ExtractText(msg.ViewOnceMessageV2.Message)
+	}
+	if msg.ViewOnceMessageV2Extension != nil && msg.ViewOnceMessageV2Extension.Message != nil {
+		return ExtractText(msg.ViewOnceMessageV2Extension.Message)
+	}
+	if msg.DocumentWithCaptionMessage != nil && msg.DocumentWithCaptionMessage.Message != nil {
+		return ExtractText(msg.DocumentWithCaptionMessage.Message)
+	}
+	if msg.EditedMessage != nil && msg.EditedMessage.Message != nil {
+		return ExtractText(msg.EditedMessage.Message)
+	}
 	return ""
 }
 
