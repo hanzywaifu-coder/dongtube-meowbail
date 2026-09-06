@@ -133,27 +133,42 @@ func (c *Client) IsBotAdmin(ctx context.Context, groupJID types.JID) (bool, erro
 		return false, err
 	}
 
-	// Check both ID (phone) and LID (linked device)
-	botJID := c.Client.Store.ID.User
-	botLID := c.Client.Store.LID.User
+	if c.Client == nil || c.Client.Store == nil {
+		return false, fmt.Errorf("client store not initialized")
+	}
+
+	// Check both ID (phone) and LID (linked device) safely
+	var botJID, botLID string
+	if c.Client.Store.ID != nil {
+		botJID = c.Client.Store.ID.ToNonAD().User
+	}
+	if c.Client.Store.LID.User != "" {
+		botLID = c.Client.Store.LID.ToNonAD().User
+	}
+
 	for _, p := range groupInfo.Participants {
-		if (p.JID.User == botJID || p.JID.User == botLID) && p.IsAdmin {
-			return true, nil
+		pUser := p.JID.ToNonAD().User
+		pLID := p.LID.ToNonAD().User
+		if (pUser != "" && (pUser == botJID || pUser == botLID)) || (pLID != "" && (pLID == botJID || pLID == botLID)) {
+			if p.IsAdmin || p.IsSuperAdmin {
+				return true, nil
+			}
 		}
 	}
 
 	return false, nil
 }
 
-// IsUserAdmin checks if a user is admin in the group
+// IsUserAdmin checks if a user is admin in the group (supports LID and phone JID matching)
 func (c *Client) IsUserAdmin(ctx context.Context, groupJID types.JID, userJID types.JID) (bool, error) {
 	groupInfo, err := c.Client.GetGroupInfo(ctx, groupJID)
 	if err != nil {
 		return false, err
 	}
 
+	normUser := userJID.ToNonAD().User
 	for _, p := range groupInfo.Participants {
-		if p.JID == userJID && p.IsAdmin {
+		if (p.JID.ToNonAD().User == normUser || p.LID.ToNonAD().User == normUser) && p.IsAdmin {
 			return true, nil
 		}
 	}

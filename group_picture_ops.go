@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"strings"
 
-	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/types"
 )
 
@@ -25,7 +24,13 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		return c.SetGroupPhoto(ctx, groupJID, nil)
 	}
 
-	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
+	// 1. Cek apakah bot adalah admin
+	isBotAdmin, errCheck := c.IsBotAdmin(ctx, groupJID)
+	if errCheck == nil && !isBotAdmin {
+		return "", fmt.Errorf("bot bukan admin di grup ini, tidak dapat mengubah foto profil grup")
+	}
+
+	// 2. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
 	cmd := exec.Command(
 		"ffmpeg",
 		"-y",
@@ -38,7 +43,7 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 	cmd.Stdin = bytes.NewReader(rawImageBytes)
 	jpegBytes, err := cmd.Output()
 
-	// 2. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library (quality 50)
+	// 3. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library (quality 50)
 	if err != nil || len(jpegBytes) == 0 {
 		img, _, decErr := image.Decode(bytes.NewReader(rawImageBytes))
 		if decErr != nil {
@@ -73,35 +78,19 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		jpegBytes = buf.Bytes()
 	}
 
-	// 3. Bersihkan seluruh marker APP0-APP15 (JFIF, EXIF, dsb) dan komentar (COM)
-	// Server WhatsApp secara ketat mewajibkan byte stream JPEG murni tanpa header asing
+	// 4. Bersihkan seluruh marker APP0-APP15 (JFIF, EXIF, dsb) dan komentar (COM)
 	cleanBytes := StripJPEGMetadata(jpegBytes)
 
-	// Method 1: Coba standard whatsmeow SetGroupPhoto dengan cleanBytes
+	// Kirim via standard whatsmeow SetGroupPhoto
 	picID, err := c.SetGroupPhoto(ctx, groupJID, cleanBytes)
 	if err == nil && picID != "" {
 		return picID, nil
 	}
 
-	// Method 2: Coba kirim via sendGroupIQ jika namespace w:profile:picture langsung
-	groupNode := waBinary.Node{
-		Tag:     "picture",
-		Attrs:   waBinary.Attrs{"type": "image"},
-		Content: cleanBytes,
-	}
-	resp, sendErr := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", groupJID, groupNode)
-	if sendErr == nil && resp != nil {
-		picNode, ok := resp.GetOptionalChildByTag("picture")
-		if ok {
-			if id, okID := picNode.Attrs["id"].(string); okID && id != "" {
-				return id, nil
-			}
+	if err != nil {
+		if strings.Contains(err.Error(), "not-acceptable") || strings.Contains(err.Error(), "406") {
+			return "", fmt.Errorf("server WhatsApp menolak (406 not-acceptable). Bot harus dijadikan Admin di grup ini untuk mengubah foto profil grup")
 		}
-		return "updated_group_iq", nil
-	}
-
-	if err != nil && (strings.Contains(err.Error(), "not a valid image") || strings.Contains(err.Error(), "not-acceptable")) {
-		return "", fmt.Errorf("server WhatsApp menolak gambar (406 not-acceptable). Pastikan bot adalah admin dan grup mengizinkan anggota mengedit info grup")
 	}
 
 	return "", err
