@@ -134,3 +134,44 @@ func (c *Client) GetBusinessCollections(ctx context.Context, targetJID types.JID
 
 	return []CatalogCollection{}, nil
 }
+
+// ProductDelete menghapus satu atau lebih item produk dari katalog bisnis
+// Mengikuti implementasi Baileys productDelete (iq set xmlns="w:biz:catalog" <product_catalog_delete>)
+func (c *Client) ProductDelete(ctx context.Context, productIDs []string) error {
+	if len(productIDs) == 0 {
+		return nil
+	}
+
+	prodNodes := make([]waBinary.Node, 0, len(productIDs))
+	for _, id := range productIDs {
+		prodNodes = append(prodNodes, waBinary.Node{
+			Tag: "product",
+			Content: []waBinary.Node{
+				{
+					Tag:     "id",
+					Content: []byte(id),
+				},
+			},
+		})
+	}
+
+	delNode := waBinary.Node{
+		Tag: "product_catalog_delete",
+		Attrs: waBinary.Attrs{
+			"v": "1",
+		},
+		Content: prodNodes,
+	}
+
+	queryNode := waBinary.Node{
+		Tag: "iq",
+		Attrs: waBinary.Attrs{
+			"to":    types.ServerJID.String(),
+			"type":  "set",
+			"xmlns": "w:biz:catalog",
+		},
+		Content: []waBinary.Node{delNode},
+	}
+
+	return c.Client.DangerousInternals().SendNode(ctx, queryNode)
+}
