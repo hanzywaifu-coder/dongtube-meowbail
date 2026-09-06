@@ -2,6 +2,8 @@ package meowbail
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
@@ -160,15 +162,65 @@ func (c *Client) SendAdminInvite(ctx context.Context, chat types.JID, groupJID t
 	return err
 }
 
-// SendSecretEncryptedText mengirim teks terenkripsi dengan custom secret key
-func (c *Client) SendSecretEncryptedText(ctx context.Context, chat types.JID, text string, customSecret []byte) error {
-	msg := &waE2E.Message{
-		MessageContextInfo: &waE2E.MessageContextInfo{
-			ThreadID:      make([]*waE2E.ThreadID, 0),
-			MessageSecret: customSecret,
-		},
-		Conversation: proto.String(text),
+// LinkedCommunityGroup info grup yang tertaut dalam komunitas
+type LinkedCommunityGroup struct {
+	JID      types.JID
+	Subject  string
+	Creation time.Time
+	Creator  types.JID
+	Size     int
+}
+
+// CommunityFetchLinkedGroups mengambil seluruh grup yang tertaut ke suatu komunitas
+// Parity dengan Baileys communityFetchLinkedGroups (iq get xmlns="w:g2" <sub_groups/>)
+func (c *Client) CommunityFetchLinkedGroups(ctx context.Context, jid types.JID) ([]LinkedCommunityGroup, error) {
+	communityJID := jid
+	// Cek jika JID adalah subgroup yang memiliki linked parent
+	groupInfo, err := c.Client.GetGroupInfo(ctx, jid)
+	if err == nil && groupInfo != nil && !groupInfo.LinkedParentJID.IsEmpty() {
+		communityJID = groupInfo.LinkedParentJID
 	}
-	_, err := c.Client.SendMessage(ctx, chat, msg)
-	return err
+
+	queryNode := waBinary.Node{
+		Tag: "sub_groups",
+	}
+
+	resp, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "get", communityJID, queryNode)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []LinkedCommunityGroup
+	subGroupsNode, ok := resp.GetOptionalChildByTag("sub_groups")
+	if ok {
+		for _, child := range subGroupsNode.GetChildrenByTag("group") {
+			ag := child.AttrGetter()
+			groupID := ag.String("id")
+			var targetJID types.JID
+			if strings.Contains(groupID, "@") {
+				targetJID, _ = types.ParseJID(groupID)
+			} else if groupID != "" {
+				targetJID = types.NewJID(groupID, types.GroupServer)
+			}
+
+			creatorStr := ag.String("creator")
+			var creatorJID types.JID
+			if creatorStr != "" {
+				creatorJID, _ = types.ParseJID(creatorStr)
+			}
+
+			creationUnix := ag.UnixTime("creation")
+			size := ag.OptionalInt("size")
+
+			results = append(results, LinkedCommunityGroup{
+				JID:      targetJID,
+				Subject:  ag.String("subject"),
+				Creation: creationUnix,
+				Creator:  creatorJID,
+				Size:     size,
+			})
+		}
+	}
+
+	return results, nil
 }
