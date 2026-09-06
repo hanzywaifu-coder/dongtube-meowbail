@@ -77,3 +77,20 @@ func (c *Client) SetCallAddPrivacy(ctx context.Context, allowEveryone bool) (typ
 func (c *Client) SetDefaultDisappearingTimer(ctx context.Context, timer time.Duration) error {
 	return c.Client.SetDefaultDisappearingTimer(ctx, timer)
 }
+
+// GetStatusPrivacy mengambil pengaturan privasi status / story broadcast WhatsApp
+func (c *Client) GetStatusPrivacy(ctx context.Context) ([]types.StatusPrivacy, error) {
+	return c.Client.GetStatusPrivacy(ctx)
+}
+
+// IssuePrivacyTokens mengirim permintaan untuk menerbitkan privacy token bagi target JID (trusted_contact)
+func (c *Client) IssuePrivacyTokens(ctx context.Context, jids []types.JID) error {
+	now := time.Now()
+	for _, j := range jids {
+		_, err := c.Client.DangerousInternals().IssuePrivacyToken(ctx, j, now)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
