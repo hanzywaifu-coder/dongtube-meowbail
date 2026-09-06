@@ -37,3 +37,20 @@ func (c *Client) SetAboutStatus(ctx context.Context, statusText string) error {
 		Text: &statusText,
 	})
 }
+
+// GetUserProfiles mengambil profil lengkap satu atau beberapa nomor (status bio, avatar ID, verified business name, daftar perangkat)
+func (c *Client) GetUserProfiles(ctx context.Context, jids []types.JID) (map[types.JID]types.UserInfo, error) {
+	return c.Client.GetUserInfo(ctx, jids)
+}
+
+// GetUserProfile mengambil profil tunggal seorang pengguna
+func (c *Client) GetUserProfile(ctx context.Context, jid types.JID) (*types.UserInfo, error) {
+	res, err := c.Client.GetUserInfo(ctx, []types.JID{jid})
+	if err != nil {
+		return nil, err
+	}
+	if info, ok := res[jid]; ok {
+		return &info, nil
+	}
+	return nil, nil
+}
