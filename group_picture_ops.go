@@ -30,21 +30,48 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		return "", fmt.Errorf("bot bukan admin di grup ini, tidak dapat mengubah foto profil grup")
 	}
 
-	// 2. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
-	cmd := exec.Command(
-		"ffmpeg",
-		"-y",
-		"-i", "pipe:0",
-		"-vf", "scale=640:640:force_original_aspect_ratio=increase,crop=640:640",
-		"-pix_fmt", "yuv420p",
-		"-f", "image2",
-		"pipe:1",
-	)
-	cmd.Stdin = bytes.NewReader(rawImageBytes)
-	jpegBytes, err := cmd.Output()
+	// 2. Normalisasi gambar menjadi baseline JPEG 640x640 murni identik dengan Sharp (Baileys standard)
+	// Jalankan Sharp processor script
+	var jpegBytes []byte
+	sharpCmd := exec.Command("node", "-e", `
+const sharp = require('/root/sc/node_modules/sharp');
+const chunks = [];
+process.stdin.on('data', c => chunks.push(c));
+process.stdin.on('end', async () => {
+  try {
+    const input = Buffer.concat(chunks);
+    const out = await sharp(input)
+      .resize(640, 640, { fit: 'cover' })
+      .jpeg({ quality: 50, progressive: false })
+      .toBuffer();
+    process.stdout.write(out);
+  } catch (err) {
+    process.stderr.write(err.message);
+    process.exit(1);
+  }
+});
+`)
+	sharpCmd.Stdin = bytes.NewReader(rawImageBytes)
+	sharpOut, sharpErr := sharpCmd.Output()
+	if sharpErr == nil && len(sharpOut) > 0 {
+		jpegBytes = sharpOut
+	} else {
+		// Fallback ke ffmpeg jika Sharp tidak tersedia
+		cmd := exec.Command(
+			"ffmpeg",
+			"-y",
+			"-i", "pipe:0",
+			"-vf", "scale=640:640:force_original_aspect_ratio=increase,crop=640:640",
+			"-pix_fmt", "yuv420p",
+			"-f", "image2",
+			"pipe:1",
+		)
+		cmd.Stdin = bytes.NewReader(rawImageBytes)
+		jpegBytes, _ = cmd.Output()
+	}
 
-	// 3. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library (quality 50)
-	if err != nil || len(jpegBytes) == 0 {
+	// 3. Fallback jika pipeline eksternal gagal: gunakan image decoding Go standard library (quality 50)
+	if len(jpegBytes) == 0 {
 		img, _, decErr := image.Decode(bytes.NewReader(rawImageBytes))
 		if decErr != nil {
 			return "", fmt.Errorf("format gambar tidak dikenali: %w", decErr)

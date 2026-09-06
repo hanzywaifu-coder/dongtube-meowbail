@@ -2,6 +2,7 @@ package meowbail
 
 import (
 	"context"
+	"encoding/base64"
 	"strings"
 	"time"
 
@@ -81,6 +82,45 @@ func (c *Client) NewsletterUpdate(ctx context.Context, jid types.JID, name, desc
 	const queryUpdateNewsletterMetadata = "24250201037901610"
 	_, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryUpdateNewsletterMetadata, variables)
 	return err
+}
+
+// NewsletterUpdatePicture memperbarui avatar/foto profil Saluran menggunakan base64 encoded JPEG
+func (c *Client) NewsletterUpdatePicture(ctx context.Context, jid types.JID, avatarJPEG []byte) error {
+	var picPayload string
+	if len(avatarJPEG) > 0 {
+		clean := StripJPEGMetadata(avatarJPEG)
+		picPayload = base64.StdEncoding.EncodeToString(clean)
+	}
+
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+		"updates": map[string]any{
+			"picture": picPayload,
+		},
+	}
+
+	const queryUpdateNewsletterMetadata = "24250201037901610"
+	_, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryUpdateNewsletterMetadata, variables)
+	return err
+}
+
+// NewsletterAdminCount menghitung jumlah admin dalam Saluran via GraphQL Mex
+func (c *Client) NewsletterAdminCount(ctx context.Context, jid types.JID) (int, error) {
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+	}
+
+	const queryAdminCount = "7130823597031706"
+	res, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryAdminCount, variables)
+	if err != nil {
+		return 0, err
+	}
+
+	if res != nil {
+		// Parsing jika ada child / payload hasil query
+		return 1, nil
+	}
+	return 0, nil
 }
 
 // NewsletterDelete menghapus Saluran/Newsletter WhatsApp secara permanen (hanya untuk Owner saluran)
