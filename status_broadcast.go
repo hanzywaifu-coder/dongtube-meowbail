@@ -85,13 +85,25 @@ func (c *Client) SendStatusBroadcastMedia(ctx context.Context, mediaBytes []byte
 }
 
 // SendStatusBroadcastAudio membuat status/story WhatsApp resmi suara/audio (VN Status)
-func (c *Client) SendStatusBroadcastAudio(ctx context.Context, audioBytes []byte, waveform []byte, backgroundColorARGB uint32) error {
+func (c *Client) SendStatusBroadcastAudio(ctx context.Context, audioBytes []byte, durationSeconds uint32, waveform []byte, backgroundColorARGB uint32) error {
 	if len(audioBytes) == 0 {
 		return fmt.Errorf("audio status kosong")
 	}
 
 	if backgroundColorARGB == 0 {
 		backgroundColorARGB = 0xFF243B55
+	}
+
+	if durationSeconds == 0 {
+		durationSeconds = 1
+	}
+
+	if len(waveform) == 0 {
+		// Default simulated waveform jika kosong (64 bytes)
+		waveform = make([]byte, 64)
+		for i := range waveform {
+			waveform[i] = byte((i * 17) % 100)
+		}
 	}
 
 	uploaded, err := c.UploadMedia(ctx, audioBytes, whatsmeow.MediaAudio)
@@ -108,6 +120,7 @@ func (c *Client) SendStatusBroadcastAudio(ctx context.Context, audioBytes []byte
 			FileEncSHA256:  uploaded.FileEncSHA256,
 			FileSHA256:     uploaded.FileSHA256,
 			FileLength:     proto.Uint64(uploaded.FileLength),
+			Seconds:        proto.Uint32(durationSeconds),
 			PTT:            proto.Bool(true),
 			Waveform:       waveform,
 			BackgroundArgb: proto.Uint32(backgroundColorARGB),
