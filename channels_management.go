@@ -30,6 +30,26 @@ func (c *Client) NewsletterGetMetadata(ctx context.Context, newsletterJID types.
 	return c.Client.GetNewsletterInfo(ctx, newsletterJID)
 }
 
+// NewsletterGetInfoWithInvite mengambil informasi saluran dari invite code / link saluran (whatsapp.com/channel/xxx)
+func (c *Client) NewsletterGetInfoWithInvite(ctx context.Context, inviteCodeOrLink string) (*types.NewsletterMetadata, error) {
+	code := inviteCodeOrLink
+	if strings.Contains(code, "whatsapp.com/channel/") {
+		parts := strings.Split(code, "whatsapp.com/channel/")
+		if len(parts) > 1 {
+			code = strings.Split(parts[1], "/")[0]
+			code = strings.Split(code, "?")[0]
+		}
+	} else if strings.Contains(code, "wa.me/channel/") {
+		parts := strings.Split(code, "wa.me/channel/")
+		if len(parts) > 1 {
+			code = strings.Split(parts[1], "/")[0]
+			code = strings.Split(code, "?")[0]
+		}
+	}
+	code = strings.TrimSpace(code)
+	return c.Client.GetNewsletterInfoWithInvite(ctx, code)
+}
+
 // NewsletterMarkViewed menandai postingan saluran telah dibaca/dilihat
 func (c *Client) NewsletterMarkViewed(ctx context.Context, newsletterJID types.JID, serverIDs []types.MessageServerID) error {
 	return c.Client.NewsletterMarkViewed(ctx, newsletterJID, serverIDs)
