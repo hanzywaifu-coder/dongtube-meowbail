@@ -202,6 +202,19 @@ process.stdin.on('end', async () => {
 	return c.Client.SetGroupPhoto(ctx, ownJID, cleanBytes)
 }
 
+// RemoveOwnProfilePicture menghapus foto profil akun WhatsApp bot itu sendiri
+// Parity dengan Baileys removeProfilePicture(sock.user.id)
+func (c *Client) RemoveOwnProfilePicture(ctx context.Context) error {
+	if c.Client.Store == nil || c.Client.Store.ID == nil {
+		return fmt.Errorf("koneksi bot belum terautentikasi")
+	}
+
+	ownJID := c.Client.Store.ID.ToNonAD()
+	_, err := c.Client.SetGroupPhoto(ctx, ownJID, nil)
+	return err
+}
+
+
 
 // StripJPEGMetadata menghapus marker APP0..APP15 dan COM dari stream JPEG,
 // menghasilkan pure baseline stream yang identik dengan output library Sharp (Baileys standard).
