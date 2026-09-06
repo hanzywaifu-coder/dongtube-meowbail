@@ -167,6 +167,29 @@ func ParseMessageEvent(evt interface{}) *MessageEvent {
 
 	text := ""
 	msg := e.Message
+	if msg == nil {
+		return nil
+	}
+
+	// Unwrap ephemeral message
+	if msg.EphemeralMessage != nil && msg.EphemeralMessage.Message != nil {
+		msg = msg.EphemeralMessage.Message
+	}
+	// Unwrap view once message
+	if msg.ViewOnceMessage != nil && msg.ViewOnceMessage.Message != nil {
+		msg = msg.ViewOnceMessage.Message
+	}
+	if msg.ViewOnceMessageV2 != nil && msg.ViewOnceMessageV2.Message != nil {
+		msg = msg.ViewOnceMessageV2.Message
+	}
+	if msg.ViewOnceMessageV2Extension != nil && msg.ViewOnceMessageV2Extension.Message != nil {
+		msg = msg.ViewOnceMessageV2Extension.Message
+	}
+	// Unwrap document with caption
+	if msg.DocumentWithCaptionMessage != nil && msg.DocumentWithCaptionMessage.Message != nil {
+		msg = msg.DocumentWithCaptionMessage.Message
+	}
+
 	if msg.GetConversation() != "" {
 		text = msg.GetConversation()
 	} else if msg.ExtendedTextMessage != nil {

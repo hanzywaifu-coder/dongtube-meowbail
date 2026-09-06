@@ -54,7 +54,23 @@ func (c *Client) DownloadAnyMedia(ctx context.Context, msg *waE2E.Message) ([]by
 		ctxInfo = targetMsg.ExtendedTextMessage.ContextInfo
 	}
 
-	if ctxInfo != nil && ctxInfo.QuotedMessage != nil {
+		if ctxInfo == nil && targetMsg.ImageMessage != nil {
+			ctxInfo = targetMsg.ImageMessage.ContextInfo
+		}
+		if ctxInfo == nil && targetMsg.VideoMessage != nil {
+			ctxInfo = targetMsg.VideoMessage.ContextInfo
+		}
+		if ctxInfo == nil && targetMsg.AudioMessage != nil {
+			ctxInfo = targetMsg.AudioMessage.ContextInfo
+		}
+		if ctxInfo == nil && targetMsg.StickerMessage != nil {
+			ctxInfo = targetMsg.StickerMessage.ContextInfo
+		}
+		if ctxInfo == nil && targetMsg.DocumentMessage != nil {
+			ctxInfo = targetMsg.DocumentMessage.ContextInfo
+		}
+
+		if ctxInfo != nil && ctxInfo.QuotedMessage != nil {
 		qm := ctxInfo.QuotedMessage
 		if qm.ViewOnceMessage != nil && qm.ViewOnceMessage.Message != nil {
 			qm = qm.ViewOnceMessage.Message
