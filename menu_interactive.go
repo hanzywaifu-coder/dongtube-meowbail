@@ -11,13 +11,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// SendEvernightMenu mengirim menu persis Baileys Evernight AI:
+// SendDongtubeMenu mengirim menu interaktif khas dongtube-meowbail:
 // - Header: DocumentMessage (package.json dummy) + jpegThumbnail + pageCount 100
 // - Footer: menuBody teks lengkap info bot & user
 // - NativeFlow buttons: single_select dropdown & cta_url info saluran
 // - ViewOnceMessage wrapper
 // - AdditionalNodes: <biz> stanza
-func (c *Client) SendEvernightMenu(ctx context.Context, chat types.JID, docData []byte, thumbData []byte, botName, menuBodyText string, sections []Section, ctaText, ctaURL string) error {
+func (c *Client) SendDongtubeMenu(ctx context.Context, chat types.JID, docData []byte, thumbData []byte, botName, menuBodyText string, sections []Section, ctaText, ctaURL string) error {
 	// 1. Upload media document jika belum
 	var docMsg *waE2E.DocumentMessage
 	if len(docData) > 0 {
