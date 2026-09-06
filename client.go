@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -75,6 +76,13 @@ func (c *Client) SetNewsletter(jid, name string) {
 // SetBusinessOwner sets the business owner JID
 func (c *Client) SetBusinessOwner(jid string) {
 	c.config.BusinessOwnerJID = jid
+}
+
+// SetDefaultFakeReply sets the global fake reply context info for all outgoing messages (text, media, etc)
+func (c *Client) SetDefaultFakeReply(ctxInfo *waE2E.ContextInfo) {
+	if c.config != nil {
+		c.config.DefaultFakeReply = ctxInfo
+	}
 }
 
 // AddEventHandler wraps whatsmeow's AddEventHandler

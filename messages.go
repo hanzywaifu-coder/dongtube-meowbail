@@ -14,8 +14,23 @@ import (
 
 // SendText sends a plain text message
 func (c *Client) SendText(ctx context.Context, chat types.JID, text string, opts ...*MessageOptions) error {
-	msg := &waE2E.Message{
-		Conversation: &text,
+	var ctxInfo *waE2E.ContextInfo
+	if c.config != nil && c.config.DefaultFakeReply != nil {
+		ctxInfo = proto.Clone(c.config.DefaultFakeReply).(*waE2E.ContextInfo)
+	}
+
+	var msg *waE2E.Message
+	if ctxInfo != nil {
+		msg = &waE2E.Message{
+			ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+				Text:        proto.String(text),
+				ContextInfo: ctxInfo,
+			},
+		}
+	} else {
+		msg = &waE2E.Message{
+			Conversation: &text,
+		}
 	}
 
 	if len(opts) > 0 && opts[0] != nil {
@@ -281,6 +296,7 @@ func (c *Client) SendAudio(ctx context.Context, chat types.JID, data []byte, opt
 			FileLength:    &resp.FileLength,
 			DirectPath:    &resp.DirectPath,
 			MediaKey:      resp.MediaKey,
+			ContextInfo:   buildNewsletterContext(c.config),
 		},
 	}
 
@@ -429,6 +445,10 @@ func (c *Client) SendQuizPoll(ctx context.Context, chat types.JID, name string, 
 // Helper functions
 
 func buildNewsletterContext(cfg *Config) *waE2E.ContextInfo {
+	if cfg != nil && cfg.DefaultFakeReply != nil {
+		return proto.Clone(cfg.DefaultFakeReply).(*waE2E.ContextInfo)
+	}
+
 	if cfg == nil || cfg.NewsletterJID == "" {
 		return &waE2E.ContextInfo{}
 	}

@@ -92,6 +92,7 @@ type Config struct {
 	BusinessOwnerJID string
 	AutoReconnect    bool
 	MaxRetryCount    int
+	DefaultFakeReply *waE2E.ContextInfo
 }
 
 // DefaultConfig returns default configuration
