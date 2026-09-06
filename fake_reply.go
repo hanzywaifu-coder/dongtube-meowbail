@@ -251,26 +251,27 @@ func (f *FakeQuotedBuilder) Toko(title, retailerId string, thumb []byte) *waE2E.
 
 // Troli membuat fake reply troli belanja pengguna (troli)
 func (f *FakeQuotedBuilder) Troli(senderJID types.JID, title, runtimeText string, thumb []byte) *waE2E.ContextInfo {
-	participant := senderJID.ToNonAD().String()
-	if participant == "" {
-		participant = "0@s.whatsapp.net"
-	}
-	status := waE2E.OrderMessage_OrderStatus(1)
-	surface := waE2E.OrderMessage_OrderSurface(1)
+	status := waE2E.OrderMessage_INQUIRY
+	surface := waE2E.OrderMessage_CATALOG
+	orderID := "DONGTUBE" + randHex(8)
 	return &waE2E.ContextInfo{
-		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
-		Participant:   proto.String(participant),
+		StanzaID:      proto.String(orderID),
+		Participant:   proto.String("0@s.whatsapp.net"),
 		RemoteJID:     proto.String("status@broadcast"),
 		QuotedMessage: &waE2E.Message{
 			OrderMessage: &waE2E.OrderMessage{
-				ItemCount:  proto.Int32(404),
-				Status:     &status,
-				Surface:    &surface,
-				Message:    proto.String(runtimeText),
-				OrderTitle: proto.String(title),
-				SellerJID:  proto.String("0@s.whatsapp.net"),
-				Thumbnail:  thumb,
-				Token:      proto.String("AR6xBKmme9otv9WMZ4O6L9p968T2v99A"),
+				OrderID:           proto.String(orderID),
+				ItemCount:         proto.Int32(2026),
+				Status:            &status,
+				Surface:           &surface,
+				Message:           proto.String(runtimeText),
+				OrderTitle:        proto.String(title),
+				SellerJID:         proto.String("0@s.whatsapp.net"),
+				Thumbnail:         thumb,
+				Token:             proto.String("AR6xBKmme9otv9WMZ4O6L9p968T2v99A"),
+				TotalAmount1000:   proto.Int64(50000000000),
+				TotalCurrencyCode: proto.String("IDR"),
+				MessageVersion:    proto.Int32(1),
 			},
 		},
 	}
