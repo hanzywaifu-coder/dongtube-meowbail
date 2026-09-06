@@ -14,6 +14,12 @@ import (
 
 // SendText sends a plain text message
 func (c *Client) SendText(ctx context.Context, chat types.JID, text string, opts ...*MessageOptions) error {
+	_, err := c.SendTextMessage(ctx, chat, text, opts...)
+	return err
+}
+
+// SendTextMessage sends a plain text message and returns whatsmeow SendResponse
+func (c *Client) SendTextMessage(ctx context.Context, chat types.JID, text string, opts ...*MessageOptions) (whatsmeow.SendResponse, error) {
 	var ctxInfo *waE2E.ContextInfo
 	if c.config != nil && c.config.DefaultFakeReply != nil {
 		ctxInfo = proto.Clone(c.config.DefaultFakeReply).(*waE2E.ContextInfo)
@@ -37,8 +43,7 @@ func (c *Client) SendText(ctx context.Context, chat types.JID, text string, opts
 		msg = applyOptions(msg, opts[0])
 	}
 
-	_, err := c.Client.SendMessage(ctx, chat, msg)
-	return err
+	return c.Client.SendMessage(ctx, chat, msg)
 }
 
 // SendTextWithNewsletter sends text with newsletter context
