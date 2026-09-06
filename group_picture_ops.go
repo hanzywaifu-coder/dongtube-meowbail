@@ -24,16 +24,19 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		return c.SetGroupPhoto(ctx, groupJID, nil)
 	}
 
-	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
+	// 1. Normalisasi gambar menjadi pure baseline JPEG 640x640 menggunakan ffmpeg
 	// WhatsApp Web / Baileys: sharp(buffer).resize(640, 640).jpeg({ quality: 50 })
+	// Menggunakan -fflags +bitexact -flags:v +bitexact untuk membersihkan komentar Lavc / metadata non-standar
 	cmd := exec.Command(
 		"ffmpeg",
 		"-y",
 		"-i", "pipe:0",
 		"-vf", "scale=640:640:force_original_aspect_ratio=increase,crop=640:640",
+		"-fflags", "+bitexact",
+		"-flags:v", "+bitexact",
 		"-pix_fmt", "yuvj420p",
 		"-vcodec", "mjpeg",
-		"-q:v", "7",
+		"-q:v", "6",
 		"-f", "image2",
 		"pipe:1",
 	)
@@ -81,27 +84,21 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		return picID, nil
 	}
 
-	// Method 2: Jika gagal dengan ErrInvalidImageFormat (406 not-acceptable),
-	// coba kirimkan IQ ke jid grup langsung dengan stanza target terpisah
-	queryNode := waBinary.Node{
-		Tag: "iq",
-		Attrs: waBinary.Attrs{
-			"id":     c.Client.GenerateMessageID(),
-			"to":     types.ServerJID,
-			"type":   "set",
-			"xmlns":  "w:profile:picture",
-			"target": groupJID,
-		},
-		Content: []waBinary.Node{{
-			Tag:     "picture",
-			Attrs:   waBinary.Attrs{"type": "image"},
-			Content: jpegBytes,
-		}},
+	// Method 2: Coba kirim via sendGroupIQ jika namespace w:profile:picture langsung
+	groupNode := waBinary.Node{
+		Tag:     "picture",
+		Attrs:   waBinary.Attrs{"type": "image"},
+		Content: jpegBytes,
 	}
-
-	sendErr := c.Client.DangerousInternals().SendNode(ctx, queryNode)
-	if sendErr == nil {
-		return "updated_direct", nil
+	resp, sendErr := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", groupJID, groupNode)
+	if sendErr == nil && resp != nil {
+		picNode, ok := resp.GetOptionalChildByTag("picture")
+		if ok {
+			if id, okID := picNode.Attrs["id"].(string); okID && id != "" {
+				return id, nil
+			}
+		}
+		return "updated_group_iq", nil
 	}
 
 	if err != nil && (strings.Contains(err.Error(), "not a valid image") || strings.Contains(err.Error(), "not-acceptable")) {
