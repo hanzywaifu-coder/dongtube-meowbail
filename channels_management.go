@@ -104,23 +104,15 @@ func (c *Client) NewsletterUpdatePicture(ctx context.Context, jid types.JID, ava
 	return err
 }
 
-// NewsletterAdminCount menghitung jumlah admin dalam Saluran via GraphQL Mex
-func (c *Client) NewsletterAdminCount(ctx context.Context, jid types.JID) (int, error) {
+// NewsletterSubscribers mengambil jumlah atau daftar subscriber saluran via GraphQL Mex
+func (c *Client) NewsletterSubscribers(ctx context.Context, jid types.JID) (any, error) {
 	variables := map[string]any{
 		"newsletter_id": jid.String(),
 	}
 
-	const queryAdminCount = "7130823597031706"
-	res, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryAdminCount, variables)
-	if err != nil {
-		return 0, err
-	}
-
-	if res != nil {
-		// Parsing jika ada child / payload hasil query
-		return 1, nil
-	}
-	return 0, nil
+	// Mex query ID for SUBSCRIBERS (xwa2_newsletter_subscribers)
+	const querySubscribersNewsletter = "6388546374527196"
+	return c.Client.DangerousInternals().SendMexIQ(ctx, querySubscribersNewsletter, variables)
 }
 
 // NewsletterDelete menghapus Saluran/Newsletter WhatsApp secara permanen (hanya untuk Owner saluran)
