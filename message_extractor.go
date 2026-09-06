@@ -10,8 +10,50 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// NormalizeMessage membuka semua wrapper WhatsApp seperti Ephemeral, ViewOnce, Edited, DocumentWithCaption, dan LottieSticker
+func NormalizeMessage(msg *waE2E.Message) *waE2E.Message {
+	if msg == nil {
+		return nil
+	}
+
+	for {
+		if msg.EphemeralMessage != nil && msg.EphemeralMessage.Message != nil {
+			msg = msg.EphemeralMessage.Message
+			continue
+		}
+		if msg.ViewOnceMessage != nil && msg.ViewOnceMessage.Message != nil {
+			msg = msg.ViewOnceMessage.Message
+			continue
+		}
+		if msg.ViewOnceMessageV2 != nil && msg.ViewOnceMessageV2.Message != nil {
+			msg = msg.ViewOnceMessageV2.Message
+			continue
+		}
+		if msg.ViewOnceMessageV2Extension != nil && msg.ViewOnceMessageV2Extension.Message != nil {
+			msg = msg.ViewOnceMessageV2Extension.Message
+			continue
+		}
+		if msg.DocumentWithCaptionMessage != nil && msg.DocumentWithCaptionMessage.Message != nil {
+			msg = msg.DocumentWithCaptionMessage.Message
+			continue
+		}
+		if msg.EditedMessage != nil && msg.EditedMessage.Message != nil && msg.EditedMessage.Message.ProtocolMessage != nil && msg.EditedMessage.Message.ProtocolMessage.EditedMessage != nil {
+			msg = msg.EditedMessage.Message.ProtocolMessage.EditedMessage
+			continue
+		}
+		if msg.LottieStickerMessage != nil && msg.LottieStickerMessage.Message != nil {
+			msg = msg.LottieStickerMessage.Message
+			continue
+		}
+		break
+	}
+
+	return msg
+}
+
 // ExtractText mengekstrak pesan teks dari berbagai varian payload WhatsApp
 func ExtractText(msg *waE2E.Message) string {
+	msg = NormalizeMessage(msg)
 	if msg == nil {
 		return ""
 	}
