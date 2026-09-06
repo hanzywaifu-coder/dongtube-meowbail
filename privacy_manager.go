@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/types"
 )
 
@@ -93,4 +94,53 @@ func (c *Client) IssuePrivacyTokens(ctx context.Context, jids []types.JID) error
 		}
 	}
 	return nil
+}
+
+// DisappearingDurationInfo hasil kueri disappearing mode duration untuk kontak
+type DisappearingDurationInfo struct {
+	JID      types.JID
+	Duration time.Duration
+}
+
+// FetchDisappearingDuration mengambil durasi disappearing mode aktif dari satu atau lebih kontak melalui protokol USync
+// Parity dengan Baileys fetchDisappearingDuration
+func (c *Client) FetchDisappearingDuration(ctx context.Context, jids []types.JID) ([]DisappearingDurationInfo, error) {
+	if len(jids) == 0 {
+		return nil, nil
+	}
+
+	query := []waBinary.Node{
+		{Tag: "disappearing_mode"},
+	}
+
+	listNode, err := c.Client.DangerousInternals().Usync(ctx, jids, "query", "interactive", query)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []DisappearingDurationInfo
+	for _, userNode := range listNode.GetChildren() {
+		if userNode.Tag != "user" {
+			continue
+		}
+		ag := userNode.AttrGetter()
+		targetJID := ag.OptionalJIDOrEmpty("jid")
+		if targetJID.IsEmpty() {
+			targetJID = ag.OptionalJIDOrEmpty("pn_jid")
+		}
+
+		dmNode, ok := userNode.GetOptionalChildByTag("disappearing_mode")
+		var dur time.Duration
+		if ok {
+			durationSec := dmNode.AttrGetter().OptionalInt("duration")
+			dur = time.Duration(durationSec) * time.Second
+		}
+
+		results = append(results, DisappearingDurationInfo{
+			JID:      targetJID,
+			Duration: dur,
+		})
+	}
+
+	return results, nil
 }
