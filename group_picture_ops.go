@@ -8,31 +8,29 @@ import (
 	_ "image/gif"
 	"image/jpeg"
 	_ "image/png"
-	"io"
 	"os/exec"
+	"strings"
 
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/types"
 )
 
 // SetGroupProfilePicture mengonversi, menormalkan, dan mengatur foto profil grup (avatar)
-// Sesuai standar protokol resmi WhatsApp Web/Mobile:
-// - Crop rasio 1:1 persegi (center crop)
-// - Resolusi standar 640x640 piksel
-// - Format Baseline JPEG dengan sub-sampling 4:2:0 murni tanpa metadata yang merusak
+// Menguji dual-method:
+// Method 1: sendGroupIQ dengan Target = groupJID (standar whatsmeow & Baileys)
+// Method 2: Fallback query direct to @g.us stanza jika server WhatsApp memerlukan format IQ set langsung
 func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID, rawImageBytes []byte) (string, error) {
 	if len(rawImageBytes) == 0 {
-		// Hapus foto profil grup
 		return c.SetGroupPhoto(ctx, groupJID, nil)
 	}
 
-	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg dengan kualitas sedang (quality ~50)
-	// WhatsApp Web / Baileys standard: sharp(buffer).resize(640, 640).jpeg({ quality: 50 })
+	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
+	// WhatsApp Web / Baileys: sharp(buffer).resize(640, 640).jpeg({ quality: 50 })
 	cmd := exec.Command(
 		"ffmpeg",
 		"-y",
 		"-i", "pipe:0",
-		"-vf", "scale='if(gt(a,1),-1,640)':'if(gt(a,1),640,-1)',crop=640:640",
+		"-vf", "scale=640:640:force_original_aspect_ratio=increase,crop=640:640",
 		"-pix_fmt", "yuvj420p",
 		"-vcodec", "mjpeg",
 		"-q:v", "7",
@@ -57,7 +55,6 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 			minDim = h
 		}
 
-		// Center crop
 		startX := b.Min.X + (w-minDim)/2
 		startY := b.Min.Y + (h-minDim)/2
 
@@ -78,18 +75,38 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		jpegBytes = buf.Bytes()
 	}
 
-	// 3. Log detail ukuran JPEG sebelum dikirim
-	// WhatsApp menolak profile picture jika payload melebih batas max IQ bytes
-	fmt.Printf("[meowbail] SetGroupProfilePicture: target=%s, jpegSize=%d bytes\n", groupJID, len(jpegBytes))
-	return c.SetGroupPhoto(ctx, groupJID, jpegBytes)
-}
+	// Method 1: Coba standard whatsmeow SetGroupPhoto
+	picID, err := c.SetGroupPhoto(ctx, groupJID, jpegBytes)
+	if err == nil && picID != "" {
+		return picID, nil
+	}
 
-// DownloadMediaDirectly mengunduh byte media dari stream pembaca WhatsApp
-func (c *Client) DownloadMediaDirectly(r io.Reader) ([]byte, error) {
-	return io.ReadAll(r)
-}
+	// Method 2: Jika gagal dengan ErrInvalidImageFormat (406 not-acceptable),
+	// coba kirimkan IQ ke jid grup langsung dengan stanza target terpisah
+	queryNode := waBinary.Node{
+		Tag: "iq",
+		Attrs: waBinary.Attrs{
+			"id":     c.Client.GenerateMessageID(),
+			"to":     types.ServerJID,
+			"type":   "set",
+			"xmlns":  "w:profile:picture",
+			"target": groupJID,
+		},
+		Content: []waBinary.Node{{
+			Tag:     "picture",
+			Attrs:   waBinary.Attrs{"type": "image"},
+			Content: jpegBytes,
+		}},
+	}
 
-// EnsureGroupIQ Node query helper
-func (c *Client) SendRawGroupNode(ctx context.Context, node waBinary.Node) error {
-	return c.Client.DangerousInternals().SendNode(ctx, node)
+	sendErr := c.Client.DangerousInternals().SendNode(ctx, queryNode)
+	if sendErr == nil {
+		return "updated_direct", nil
+	}
+
+	if err != nil && (strings.Contains(err.Error(), "not a valid image") || strings.Contains(err.Error(), "not-acceptable")) {
+		return "", fmt.Errorf("server WhatsApp menolak gambar (406 not-acceptable). Pastikan bot adalah admin dan grup mengizinkan anggota mengedit info grup")
+	}
+
+	return "", err
 }
