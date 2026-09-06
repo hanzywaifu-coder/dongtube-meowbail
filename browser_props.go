@@ -2,6 +2,7 @@ package meowbail
 
 import (
 	"go.mau.fi/whatsmeow/proto/waCompanionReg"
+	"go.mau.fi/whatsmeow/proto/waWa6"
 	"go.mau.fi/whatsmeow/store"
 	"google.golang.org/protobuf/proto"
 )
@@ -39,6 +40,10 @@ func SetBrowserProfile(profile BrowserProfile) {
 	case BrowserDesktop:
 		store.SetOSInfo("Windows", [3]uint32{10, 0, 22631})
 		store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_DESKTOP.Enum()
+		// Gunakan WIN_HYBRID untuk Desktop modern agar tidak ditolak server (428 error)
+		if store.BaseClientPayload.WebInfo != nil {
+			store.BaseClientPayload.WebInfo.WebSubPlatform = waWa6.ClientPayload_WebInfo_WIN_HYBRID.Enum()
+		}
 	default:
 		store.SetOSInfo("Ubuntu", [3]uint32{22, 4, 4})
 		store.DeviceProps.PlatformType = waCompanionReg.DeviceProps_CHROME.Enum()
