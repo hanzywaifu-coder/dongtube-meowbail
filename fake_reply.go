@@ -261,7 +261,7 @@ func (f *FakeQuotedBuilder) Troli(senderJID types.JID, title, runtimeText string
 		QuotedMessage: &waE2E.Message{
 			OrderMessage: &waE2E.OrderMessage{
 				OrderID:           proto.String(orderID),
-				ItemCount:         proto.Int32(2026),
+				ItemCount:         proto.Int32(1),
 				Status:            &status,
 				Surface:           &surface,
 				Message:           proto.String(runtimeText),
@@ -269,9 +269,15 @@ func (f *FakeQuotedBuilder) Troli(senderJID types.JID, title, runtimeText string
 				SellerJID:         proto.String("0@s.whatsapp.net"),
 				Thumbnail:         thumb,
 				Token:             proto.String("AR6xBKmme9otv9WMZ4O6L9p968T2v99A"),
-				TotalAmount1000:   proto.Int64(50000000000),
+				TotalAmount1000:   proto.Int64(50000000),
 				TotalCurrencyCode: proto.String("IDR"),
 				MessageVersion:    proto.Int32(1),
+			},
+			LocationMessage: &waE2E.LocationMessage{
+				DegreesLatitude:  proto.Float64(0),
+				DegreesLongitude: proto.Float64(0),
+				Name:             proto.String(title),
+				JPEGThumbnail:    thumb,
 			},
 		},
 	}

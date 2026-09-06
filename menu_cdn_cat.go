@@ -48,14 +48,8 @@ func (c *Client) SendRawCDNMenuWithContent(ctx context.Context, chat types.JID, 
 		InteractiveMessage: &waE2E.InteractiveMessage{
 			Header: &waE2E.InteractiveMessage_Header{
 				HasMediaAttachment: proto.Bool(len(thumbBytes) > 0),
-				Media: &waE2E.InteractiveMessage_Header_LocationMessage{
-					LocationMessage: &waE2E.LocationMessage{
-						DegreesLatitude:  proto.Float64(0),
-						DegreesLongitude: proto.Float64(0),
-						Name:             proto.String(headerTitle),
-						Address:          proto.String("Dongtube Bot"),
-						JPEGThumbnail:    thumbBytes,
-					},
+				Media: &waE2E.InteractiveMessage_Header_JPEGThumbnail{
+					JPEGThumbnail: thumbBytes,
 				},
 			},
 			Body: &waE2E.InteractiveMessage_Body{
