@@ -134,6 +134,39 @@ func (c *Client) CommunitySettingUpdate(ctx context.Context, communityJID types.
 	return err
 }
 
+// CommunityMemberAddMode mengatur apakah hanya admin atau semua member yang bisa menambah anggota di komunitas
+// mode: admin_add atau all_member_add (Baileys communityMemberAddMode parity)
+func (c *Client) CommunityMemberAddMode(ctx context.Context, communityJID types.JID, mode string) error {
+	content := waBinary.Node{
+		Tag:     "member_add_mode",
+		Content: []byte(mode),
+	}
+	_, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", communityJID, content)
+	return err
+}
+
+// CommunityJoinApprovalMode mengatur mode persetujuan gabung komunitas (on / off)
+// Baileys communityJoinApprovalMode parity
+func (c *Client) CommunityJoinApprovalMode(ctx context.Context, communityJID types.JID, requireApproval bool) error {
+	stateStr := "off"
+	if requireApproval {
+		stateStr = "on"
+	}
+	content := waBinary.Node{
+		Tag: "membership_approval_mode",
+		Content: []waBinary.Node{
+			{
+				Tag: "community_join",
+				Attrs: waBinary.Attrs{
+					"state": stateStr,
+				},
+			},
+		},
+	}
+	_, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", communityJID, content)
+	return err
+}
+
 // CommunityAcceptInvite bergabung ke Komunitas WhatsApp via invite code
 func (c *Client) CommunityAcceptInvite(ctx context.Context, code string) (types.JID, error) {
 	return c.Client.JoinGroupWithLink(ctx, code)
