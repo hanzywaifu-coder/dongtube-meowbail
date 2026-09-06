@@ -20,12 +20,19 @@ func (c *Client) DownloadMedia(ctx context.Context, msg whatsmeow.DownloadableMe
 	return c.Client.Download(ctx, msg)
 }
 
-// UploadMedia uploads media and returns upload info
+// UploadMedia uploads media and returns upload info with automatic smart LRU deduplication cache
 func (c *Client) UploadMedia(ctx context.Context, data []byte, mediaType whatsmeow.MediaType) (*whatsmeow.UploadResponse, error) {
+	cache := GetGlobalUploadCache()
+	if cachedResp, hit := cache.Get(mediaType, data); hit {
+		return &cachedResp, nil
+	}
+
 	resp, err := c.Client.Upload(ctx, data, mediaType)
 	if err != nil {
 		return nil, err
 	}
+
+	cache.Put(mediaType, data, resp)
 	return &resp, nil
 }
 

@@ -41,8 +41,8 @@ func (c *Client) SendRawCDNMenu(ctx context.Context, chat types.JID, thumbBytes 
 		HasMediaAttachment: proto.Bool(true),
 	}
 	if len(thumbBytes) > 0 {
-		uploaded, err := c.Client.Upload(ctx, thumbBytes, whatsmeow.MediaImage)
-		if err == nil && uploaded.DirectPath != "" {
+		uploaded, err := c.UploadMedia(ctx, thumbBytes, whatsmeow.MediaImage)
+		if err == nil && uploaded != nil && uploaded.DirectPath != "" {
 			header.Media = &waE2E.InteractiveMessage_Header_ImageMessage{
 				ImageMessage: &waE2E.ImageMessage{
 					URL:           proto.String(uploaded.URL),
@@ -111,7 +111,7 @@ func (c *Client) SendRawCDNMenu(ctx context.Context, chat types.JID, thumbBytes 
 	_ = json.Valid([]byte(bloksDataRaw))
 
 	bizNodes := buildBizAdditionalNodes()
-	_, err := c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
+	_, err := c.SendMessageWithRetry(ctx, chat, msg, 3, whatsmeow.SendRequestExtra{
 		AdditionalNodes: &bizNodes,
 	})
 	return err
