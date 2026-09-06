@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
@@ -48,6 +49,15 @@ func (c *Client) NewsletterGetInfoWithInvite(ctx context.Context, inviteCodeOrLi
 	}
 	code = strings.TrimSpace(code)
 	return c.Client.GetNewsletterInfoWithInvite(ctx, code)
+}
+
+// NewsletterCreate membuat saluran baru dengan nama dan deskripsi
+func (c *Client) NewsletterCreate(ctx context.Context, name, description string, avatarJPEG []byte) (*types.NewsletterMetadata, error) {
+	return c.Client.CreateNewsletter(ctx, whatsmeow.CreateNewsletterParams{
+		Name:        name,
+		Description: description,
+		Picture:     avatarJPEG,
+	})
 }
 
 // NewsletterMarkViewed menandai postingan saluran telah dibaca/dilihat
