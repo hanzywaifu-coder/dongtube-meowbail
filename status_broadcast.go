@@ -78,5 +78,42 @@ func (c *Client) SendStatusBroadcastMedia(ctx context.Context, mediaBytes []byte
 	}
 
 	_, err = c.Client.SendMessage(ctx, types.StatusBroadcastJID, msg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// SendStatusBroadcastAudio membuat status/story WhatsApp resmi suara/audio (VN Status)
+func (c *Client) SendStatusBroadcastAudio(ctx context.Context, audioBytes []byte, waveform []byte, backgroundColorARGB uint32) error {
+	if len(audioBytes) == 0 {
+		return fmt.Errorf("audio status kosong")
+	}
+
+	if backgroundColorARGB == 0 {
+		backgroundColorARGB = 0xFF243B55
+	}
+
+	uploaded, err := c.UploadMedia(ctx, audioBytes, whatsmeow.MediaAudio)
+	if err != nil {
+		return fmt.Errorf("upload audio status: %w", err)
+	}
+
+	msg := &waE2E.Message{
+		AudioMessage: &waE2E.AudioMessage{
+			URL:            proto.String(uploaded.URL),
+			DirectPath:     proto.String(uploaded.DirectPath),
+			MediaKey:       uploaded.MediaKey,
+			Mimetype:       proto.String("audio/ogg; codecs=opus"),
+			FileEncSHA256:  uploaded.FileEncSHA256,
+			FileSHA256:     uploaded.FileSHA256,
+			FileLength:     proto.Uint64(uploaded.FileLength),
+			PTT:            proto.Bool(true),
+			Waveform:       waveform,
+			BackgroundArgb: proto.Uint32(backgroundColorARGB),
+		},
+	}
+
+	_, err = c.Client.SendMessage(ctx, types.StatusBroadcastJID, msg)
 	return err
 }
