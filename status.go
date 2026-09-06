@@ -82,7 +82,7 @@ func (c *Client) SendGroupStatus(ctx context.Context, groupJID types.JID, media 
 		return fmt.Errorf("empty status media or caption")
 	}
 
-	// Bungkus ke dalam GroupStatusMessageV2 (sesuai spesifikasi protobuf WhatsApp & alipclutch-baileys)
+	// Bungkus ke dalam GroupStatusMessageV2 (sesuai spesifikasi protobuf WhatsApp & dongtube-meowbail)
 	statusMsg := &waE2E.Message{
 		GroupStatusMessageV2: &waE2E.FutureProofMessage{
 			Message: innerMsg,

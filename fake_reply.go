@@ -17,7 +17,7 @@ func randHex(n int) string {
 	return hex.EncodeToString(b)
 }
 
-// FakeQuotedBuilder penyedia aneka fake reply dari alipai-cmd.js / Evernight AI
+// FakeQuotedBuilder penyedia aneka fake reply bergaya dongtube-meowbail / Evernight AI
 type FakeQuotedBuilder struct{}
 
 var FakeReply = &FakeQuotedBuilder{}

@@ -16,7 +16,7 @@ type InteractiveMenuButton struct {
 	ButtonParamsJSON string `json:"buttonParamsJson"`
 }
 
-// SendInteractiveMenu mengirim menu persis Baileys alipclutch / evernight ai:
+// SendInteractiveMenu mengirim menu persis Baileys modern / dongtube-meowbail:
 // viewOnceMessage -> interactiveMessage (Document header + body + footer + nativeFlowMessage buttons)
 func (c *Client) SendInteractiveMenu(ctx context.Context, chat types.JID, docData []byte, thumbData []byte, footerText string, sections []Section, ctaText, ctaURL string, channelInfo *Config) error {
 	var docMsg *waE2E.DocumentMessage

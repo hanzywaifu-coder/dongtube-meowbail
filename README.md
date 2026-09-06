@@ -12,7 +12,7 @@ Dibuat dari nol untuk menjadi pustaka WhatsApp nomor 1, independen, modern, dan 
 |---|---|---|---|
 | **Bahasa yang Didukung** | Golang saja | Node.js saja | **Golang & Node.js / TS** |
 | **Konsumsi Memori (RAM)** | ~20 MB | ~120 MB+ | **~20 MB (Go) / Optimal (Node)** |
-| **Custom Pairing Code (8 Chars)** | ❌ Terbatas auto | ✅ Ya (`alipclutch`) | ✅ **Ya (Kustom 8 Karakter)** |
+| **Custom Pairing Code (8 Chars)** | ❌ Terbatas auto | ✅ Ya (Fork Baileys) | ✅ **Ya (Kustom 8 Karakter)** |
 | **Status Grup / Story Grup (SWGC)** | ❌ Manual proto | ✅ Ya (`groupStatusMessageV2`) | ✅ **Bawaan & Otomatis** |
 | **LID ↔ Phone Number Resolver** | ❌ Terpisah | ⚠️ Parsial | ✅ **Built-in `LIDResolver`** |
 | **Retry Spiral Loop Detector** | ❌ Tidak ada | ⚠️ Plugin terpisah | ✅ **Built-in `RetryTracker`** |
