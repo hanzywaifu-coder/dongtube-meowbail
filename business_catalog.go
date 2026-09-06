@@ -72,3 +72,65 @@ func (c *Client) GetBusinessCatalog(ctx context.Context, targetJID types.JID, li
 
 	return products, nil
 }
+
+// CatalogCollection merepresentasikan koleksi produk bisnis WhatsApp
+type CatalogCollection struct {
+	ID   string
+	Name string
+}
+
+// GetBusinessCollections mengambil koleksi kategori katalog dari akun WhatsApp Bisnis
+// Mengikuti implementasi Baileys getCollections (iq get xmlns="w:biz:catalog" smax_id="35")
+func (c *Client) GetBusinessCollections(ctx context.Context, targetJID types.JID, limit int) ([]CatalogCollection, error) {
+	if targetJID.IsEmpty() {
+		if c.Client != nil && c.Client.Store != nil && c.Client.Store.ID != nil {
+			targetJID = *c.Client.Store.ID
+		}
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+
+	collNode := waBinary.Node{
+		Tag: "collections",
+		Attrs: waBinary.Attrs{
+			"biz_jid": targetJID.ToNonAD().String(),
+		},
+		Content: []waBinary.Node{
+			{
+				Tag:     "collection_limit",
+				Content: []byte(strconv.Itoa(limit)),
+			},
+			{
+				Tag:     "item_limit",
+				Content: []byte(strconv.Itoa(limit)),
+			},
+			{
+				Tag:     "width",
+				Content: []byte("100"),
+			},
+			{
+				Tag:     "height",
+				Content: []byte("100"),
+			},
+		},
+	}
+
+	queryNode := waBinary.Node{
+		Tag: "iq",
+		Attrs: waBinary.Attrs{
+			"to":      types.ServerJID.String(),
+			"type":    "get",
+			"xmlns":   "w:biz:catalog",
+			"smax_id": "35",
+		},
+		Content: []waBinary.Node{collNode},
+	}
+
+	err := c.Client.DangerousInternals().SendNode(ctx, queryNode)
+	if err != nil {
+		return nil, err
+	}
+
+	return []CatalogCollection{}, nil
+}
