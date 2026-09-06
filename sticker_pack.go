@@ -1,7 +1,6 @@
 package meowbail
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -33,9 +32,9 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	packID := fmt.Sprintf("Pack_%x", packHash[:8])
 	trayIconFileName := "tray_icon.webp"
 
-	// Build ZIP container (metode Store / uncompressed) sesuai spesifikasi WA sticker pack
-	zipBuf := new(bytes.Buffer)
-	zw := zip.NewWriter(zipBuf)
+	// Build ZIP container murni (metode Store, Flags = 0 tanpa bit data descriptor)
+	// sesuai spesifikasi parser C++ WhatsApp Android & iOS
+	zipWriter := NewWhatsAppZipWriter()
 
 	var stickers []*waE2E.StickerPackMessage_Sticker
 
@@ -51,16 +50,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		b64Clean := base64.RawURLEncoding.EncodeToString(h[:])
 		fileName := b64Clean + ".webp"
 
-		w, err := zw.CreateHeader(&zip.FileHeader{
-			Name:   fileName,
-			Method: zip.Store,
-		})
-		if err != nil {
-			return fmt.Errorf("create zip entry %s: %w", fileName, err)
-		}
-		if _, err := w.Write(itemData); err != nil {
-			return fmt.Errorf("write zip entry %s: %w", fileName, err)
-		}
+		zipWriter.AddFile(fileName, itemData)
 
 		stickers = append(stickers, &waE2E.StickerPackMessage_Sticker{
 			Emojis:             []string{""},
@@ -81,22 +71,9 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	}
 
 	// Masukkan tray cover ke zip dengan nama baku WhatsApp: tray_icon.webp
-	wTray, err := zw.CreateHeader(&zip.FileHeader{
-		Name:   trayIconFileName,
-		Method: zip.Store,
-	})
-	if err != nil {
-		return fmt.Errorf("create zip tray: %w", err)
-	}
-	if _, err := wTray.Write(trayBytes); err != nil {
-		return fmt.Errorf("write zip tray: %w", err)
-	}
+	zipWriter.AddFile(trayIconFileName, trayBytes)
 
-	if err := zw.Close(); err != nil {
-		return fmt.Errorf("close zip writer: %w", err)
-	}
-
-	zipBytes := zipBuf.Bytes()
+	zipBytes := zipWriter.Bytes()
 
 	// 1. Upload ZIP stiker pack ke WhatsApp MMS khusus Sticker Pack
 	uploadedZip, err := c.uploadRawMediaToMMS(ctx, zipBytes, "WhatsApp Sticker Pack Keys", "/mms/sticker-pack", nil)
