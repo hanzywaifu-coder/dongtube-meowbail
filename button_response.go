@@ -2,7 +2,6 @@ package meowbail
 
 import (
 	"encoding/json"
-	"strings"
 
 	"go.mau.fi/whatsmeow/types/events"
 )
