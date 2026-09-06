@@ -61,6 +61,28 @@ func (c *Client) NewsletterCreate(ctx context.Context, name, description string,
 	})
 }
 
+// NewsletterUpdate updates newsletter name or description via WhatsApp Mex GraphQL
+func (c *Client) NewsletterUpdate(ctx context.Context, jid types.JID, name, description string) error {
+	updates := make(map[string]any)
+	if name != "" {
+		updates["name"] = name
+	}
+	if description != "" {
+		updates["description"] = description
+	}
+	updates["settings"] = nil
+
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+		"updates":       updates,
+	}
+
+	// Mex query ID for UPDATE_METADATA (xwa2_newsletter_update)
+	const queryUpdateNewsletterMetadata = "24250201037901610"
+	_, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryUpdateNewsletterMetadata, variables)
+	return err
+}
+
 // NewsletterMarkViewed menandai postingan saluran telah dibaca/dilihat
 func (c *Client) NewsletterMarkViewed(ctx context.Context, newsletterJID types.JID, serverIDs []types.MessageServerID) error {
 	return c.Client.NewsletterMarkViewed(ctx, newsletterJID, serverIDs)
