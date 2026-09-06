@@ -3,6 +3,7 @@ package meowbail
 import (
 	"context"
 	"strings"
+	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -63,6 +64,16 @@ func (c *Client) NewsletterCreate(ctx context.Context, name, description string,
 // NewsletterMarkViewed menandai postingan saluran telah dibaca/dilihat
 func (c *Client) NewsletterMarkViewed(ctx context.Context, newsletterJID types.JID, serverIDs []types.MessageServerID) error {
 	return c.Client.NewsletterMarkViewed(ctx, newsletterJID, serverIDs)
+}
+
+// GetSubscribedNewsletters mengambil seluruh daftar Saluran/Newsletter yang diikuti
+func (c *Client) GetSubscribedNewsletters(ctx context.Context) ([]*types.NewsletterMetadata, error) {
+	return c.Client.GetSubscribedNewsletters(ctx)
+}
+
+// NewsletterSubscribeLiveUpdates berlangganan live update sementara untuk suatu saluran
+func (c *Client) NewsletterSubscribeLiveUpdates(ctx context.Context, jid types.JID) (time.Duration, error) {
+	return c.Client.NewsletterSubscribeLiveUpdates(ctx, jid)
 }
 
 // FormatMention membersihkan teks dan menghasilkan tag string @user dan slice MentionedJID
