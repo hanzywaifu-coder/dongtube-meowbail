@@ -22,7 +22,10 @@ func (c *Client) SendRawCDNMenuWithContent(ctx context.Context, chat types.JID, 
 
 	ctaParamsJSON := `{"display_text":"\u0000","url":"https://wa.me/6283143961588","merchant_url":"https://wa.me/6283143961588","icon":"PROMOTION"}`
 
-	offerParamsJSON := `{"limited_time_offer":{"text":"","url":"https://wa.me/6283143961588","copy_code":"Dongtube","expiration_time":1788479940000}}`
+	// limited_time_offer banner di atas tombol interactive menu
+	// text diisi nama bot agar tidak muncul "Tawaran telah berakhir", expiration_time dibuat jauh ke depan (tahun 2038)
+	// copy_code otomatis disalin ke clipboard pengguna saat diklik
+	offerParamsJSON := `{"limited_time_offer":{"text":"Dongtube Bot Assistant","url":"https://wa.me/6283143961588","copy_code":"Dongtube Bot Assistant - https://wa.me/6283143961588","expiration_time":2147483647000}}`
 
 	escapedBody, _ := json.Marshal(customBodyText)
 	// Buat A2UI Bloks Widget dengan teks isi kategori

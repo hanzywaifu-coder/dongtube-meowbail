@@ -21,7 +21,10 @@ func (c *Client) SendRawCDNMenu(ctx context.Context, chat types.JID, thumbBytes 
 
 	ctaParamsJSON := `{"display_text":"\u0000","url":"https://wa.me/6283143961588","merchant_url":"https://wa.me/6283143961588","icon":"PROMOTION"}`
 
-	offerParamsJSON := `{"limited_time_offer":{"text":"","url":"https://wa.me/6283143961588","copy_code":"Dongtube","expiration_time":1788479940000}}`
+	// limited_time_offer banner di atas tombol interactive menu
+	// text diisi nama bot agar tidak muncul "Tawaran telah berakhir", expiration_time dibuat jauh ke depan (tahun 2038)
+	// copy_code otomatis disalin ke clipboard pengguna saat diklik
+	offerParamsJSON := `{"limited_time_offer":{"text":"Dongtube Bot Assistant","url":"https://wa.me/6283143961588","copy_code":"Dongtube Bot Assistant - https://wa.me/6283143961588","expiration_time":2147483647000}}`
 
 	bloksDataRaw := `{"version":"v0.9","createSurface":{"surfaceId":"starcore-widget=b4e9d374-935e-4f69-9329-73a548d05b67","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json","components":[{"id":"root","component":"Column","children":["card_2","card_6","button_8"]},{"id":"text_0","component":"Text","text":"Selamat Malam, Al!\n\n╭┈┈⬡「 ɪɴꜰᴏ ʙᴏᴛ 」\n┃ ɴᴀᴍᴇ     : Dongtube\n┃ ᴠᴇʀꜱɪᴏɴ  : v0.0.1\n┃ ᴜᴘᴛɪᴍᴇ   : 45m 47d\n┃ ᴍᴏᴅᴇ     : ꜱᴇʟꜰ\n┃ ᴄᴏᴍᴍᴀɴᴅꜱ : 243\n╰┈┈┈┈┈┈┈┈⬡\n\n╭┈┈⬡「 ɪɴꜰᴏ ᴜꜱᴇʀ 」\n┃ ɴᴀᴍᴀ   : Al\n┃ ᴀᴋꜱᴇꜱ  :  ᴏᴡɴᴇʀ\n┃ ʟɪᴍɪᴛ  :  ᴜɴʟɪᴍɪᴛᴇᴅ\n┃ ᴅᴀꜰᴛᴀʀ :  ʙᴇʟᴜᴍ\n╰┈┈┈┈┈┈┈┈⬡","variant":"body"},{"id":"column_1","component":"Column","children":["text_0"]},{"id":"card_2","component":"Card","child":"column_1"},{"id":"divider_3","component":"Divider"},{"id":"text_4","component":"Text","text":"Halo, Al. Saya adalah Dongtube sebuah bot asisten WhatsApp. Apakah ada yang bisa saya bantu? Silakan tekan tombol untuk menampilkan halaman menu berikutnya.","variant":"body"},{"id":"column_5","component":"Column","children":["divider_3","text_4"]},{"id":"card_6","component":"Card","child":"column_5"},{"id":"text_7","component":"Text","text":"ᴏᴡɴᴇʀ","variant":"body"},{"id":"button_8","component":"Button","child":"text_7","variant":"primary","action":{"call":"openUrl","args":{"url":"https://wa.me/6283143961588"}}}]}}`
 
