@@ -152,6 +152,12 @@ func (c *Client) FetchDisappearingDuration(ctx context.Context, jids []types.JID
 	return results, nil
 }
 
+// UsernameInfo hasil kueri username WhatsApp (WhatsApp Usernames feature)
+type UsernameInfo struct {
+	JID      types.JID
+	Username string
+}
+
 // FetchStatus mengambil status teks (About / Bio) dari satu atau lebih kontak melalui protokol USync
 // Parity dengan Baileys fetchStatus
 func (c *Client) FetchStatus(ctx context.Context, jids []types.JID) ([]UserStatusInfo, error) {
@@ -202,4 +208,53 @@ func (c *Client) FetchStatus(ctx context.Context, jids []types.JID) ([]UserStatu
 
 	return results, nil
 }
+
+// FetchUsername mengambil username publik WhatsApp dari satu atau lebih kontak melalui USync
+// Parity dengan Baileys USyncUsernameProtocol
+func (c *Client) FetchUsername(ctx context.Context, jids []types.JID) ([]UsernameInfo, error) {
+	if len(jids) == 0 {
+		return nil, nil
+	}
+
+	query := []waBinary.Node{
+		{Tag: "username"},
+	}
+
+	listNode, err := c.Client.DangerousInternals().Usync(ctx, jids, "query", "interactive", query)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []UsernameInfo
+	for _, userNode := range listNode.GetChildren() {
+		if userNode.Tag != "user" {
+			continue
+		}
+		ag := userNode.AttrGetter()
+		targetJID := ag.OptionalJIDOrEmpty("jid")
+		if targetJID.IsEmpty() {
+			targetJID = ag.OptionalJIDOrEmpty("pn_jid")
+		}
+
+		unNode, ok := userNode.GetOptionalChildByTag("username")
+		var uname string
+		if ok {
+			contentBytes, isBytes := unNode.Content.([]byte)
+			if isBytes {
+				uname = string(contentBytes)
+			} else if s, isStr := unNode.Content.(string); isStr {
+				uname = s
+			}
+		}
+
+		results = append(results, UsernameInfo{
+			JID:      targetJID,
+			Username: uname,
+		})
+	}
+
+	return results, nil
+}
+
+
 
