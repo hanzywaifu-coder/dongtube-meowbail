@@ -95,6 +95,32 @@ func (c *Client) NewsletterDelete(ctx context.Context, jid types.JID) error {
 	return err
 }
 
+// NewsletterChangeOwner mentransfer kepemilikan Saluran ke pengguna lain
+func (c *Client) NewsletterChangeOwner(ctx context.Context, jid types.JID, newOwnerJID types.JID) error {
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+		"user_id":       newOwnerJID.String(),
+	}
+
+	// Mex query ID for CHANGE_OWNER (xwa2_newsletter_change_owner)
+	const queryChangeOwnerNewsletter = "7341777602580933"
+	_, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryChangeOwnerNewsletter, variables)
+	return err
+}
+
+// NewsletterDemote menurunkan admin saluran menjadi subscriber biasa
+func (c *Client) NewsletterDemote(ctx context.Context, jid types.JID, userJID types.JID) error {
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+		"user_id":       userJID.String(),
+	}
+
+	// Mex query ID for DEMOTE (xwa2_newsletter_demote)
+	const queryDemoteNewsletter = "6551828931592903"
+	_, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryDemoteNewsletter, variables)
+	return err
+}
+
 // NewsletterMarkViewed menandai postingan saluran telah dibaca/dilihat
 func (c *Client) NewsletterMarkViewed(ctx context.Context, newsletterJID types.JID, serverIDs []types.MessageServerID) error {
 	return c.Client.NewsletterMarkViewed(ctx, newsletterJID, serverIDs)
