@@ -86,6 +86,11 @@ func (a *AntiBanEngine) AllowSend(targetJID string) (allowed bool, waitTime time
 		}
 	}
 
+	// Bersihkan entri lama jika kosong untuk cegah memory leak
+	if len(recent) == 0 && len(times) > 0 {
+		delete(a.history, targetJID)
+	}
+
 	if len(recent) >= a.cfg.RateLimitPerMin {
 		// Tunggu sisa detik menuju reset
 		oldest := recent[0]
@@ -95,5 +100,16 @@ func (a *AntiBanEngine) AllowSend(targetJID string) (allowed bool, waitTime time
 
 	recent = append(recent, now)
 	a.history[targetJID] = recent
+
+	// Periodik garbage collection history jika map tumbuh terlalu besar (>5000 entri)
+	if len(a.history) > 5000 {
+		for jid, h := range a.history {
+			if len(h) == 0 || h[len(h)-1].Before(oneMinAgo) {
+				delete(a.history, jid)
+			}
+		}
+	}
+
 	return true, 0
 }
+
