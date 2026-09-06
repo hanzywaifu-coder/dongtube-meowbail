@@ -97,3 +97,8 @@ func (c *Client) NewsletterMute(ctx context.Context, channelJID types.JID, mute 
 	}
 	return c.Client.NewsletterToggleMute(ctx, channelJID, false)
 }
+
+// MarkChatAsUnread menandai obrolan sebagai belum dibaca (Unread)
+func (c *Client) MarkChatAsUnread(ctx context.Context, chat types.JID) error {
+	return c.MarkChatAsRead(ctx, chat, false)
+}
