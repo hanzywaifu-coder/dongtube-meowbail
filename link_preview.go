@@ -1,6 +1,7 @@
 package meowbail
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
+
 
 var urlRegex = regexp.MustCompile(`(?i)\bhttps?://[^\s<>"{}|\^~\[\]` + "`" + `]+`)
 
@@ -99,11 +101,12 @@ func FetchLinkPreview(targetURL string, timeout ...time.Duration) (*LinkPreviewI
 				rawImg, err := io.ReadAll(io.LimitReader(imgResp.Body, 2*1024*1024))
 				if err == nil && len(rawImg) > 0 {
 					cmd := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=192:192:force_original_aspect_ratio=decrease,pad=192:192:(192-iw)/2:(192-ih)/2:color=0x00000000", "-vcodec", "mjpeg", "-f", "image2", "pipe:1")
-					cmd.Stdin = strings.NewReader(string(rawImg))
+					cmd.Stdin = bytes.NewReader(rawImg)
 					thumb, errThumb := cmd.Output()
 					if errThumb == nil && len(thumb) > 0 {
 						info.JPEGThumb = thumb
 					}
+
 				}
 			}
 		}
