@@ -59,8 +59,21 @@ func (r *RateLimiter) WaitOrThrottle(chat types.JID) time.Duration {
 
 	r.tokenBuckets[key] = r.burstLimit - 1
 	r.lastSent[key] = now
+
+	// Periodik garbage collection entri jika map membesar (>3000 target chat)
+	if len(r.lastSent) > 3000 {
+		expireThreshold := now.Add(-10 * time.Minute)
+		for k, t := range r.lastSent {
+			if t.Before(expireThreshold) {
+				delete(r.lastSent, k)
+				delete(r.tokenBuckets, k)
+			}
+		}
+	}
+
 	return 0
 }
+
 
 // Throttle menerapkan proteksi jeda aman sebelum mengirim pesan ke chat
 func (c *Client) Throttle(chat types.JID) {
