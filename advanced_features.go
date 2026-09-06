@@ -196,3 +196,15 @@ func (c *Client) GetContactProfilePicture(ctx context.Context, target types.JID,
 	}
 	return c.Client.GetProfilePictureInfo(ctx, target, extra)
 }
+
+// DownloadContactProfilePicture mengambil dan mengunduh byte gambar langsung dari avatar pengguna atau grup
+func (c *Client) DownloadContactProfilePicture(ctx context.Context, target types.JID, isCommunity bool) ([]byte, error) {
+	info, err := c.GetContactProfilePicture(ctx, target, isCommunity)
+	if err != nil {
+		return nil, err
+	}
+	if info == nil || info.URL == "" {
+		return nil, fmt.Errorf("avatar tidak ditemukan")
+	}
+	return FetchURL(info.URL)
+}
