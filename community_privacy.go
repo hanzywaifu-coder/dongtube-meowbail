@@ -80,6 +80,26 @@ func (c *Client) GetCommunityParticipants(ctx context.Context, communityJID type
 	return c.Client.GetLinkedGroupsParticipants(ctx, communityJID)
 }
 
+// CommunityUpdateSubject mengubah nama / judul Komunitas WhatsApp
+func (c *Client) CommunityUpdateSubject(ctx context.Context, communityJID types.JID, newSubject string) error {
+	return c.Client.SetGroupName(ctx, communityJID, newSubject)
+}
+
+// CommunityUpdateDescription mengubah deskripsi / topik Komunitas WhatsApp
+func (c *Client) CommunityUpdateDescription(ctx context.Context, communityJID types.JID, newDescription string) error {
+	return c.Client.SetGroupTopic(ctx, communityJID, "", "", newDescription)
+}
+
+// CommunityLeave keluar dari Komunitas WhatsApp
+func (c *Client) CommunityLeave(ctx context.Context, communityJID types.JID) error {
+	return c.Client.LeaveGroup(ctx, communityJID)
+}
+
+// CommunityGetInviteLink mengambil kode link undangan Komunitas WhatsApp
+func (c *Client) CommunityGetInviteLink(ctx context.Context, communityJID types.JID, reset bool) (string, error) {
+	return c.Client.GetGroupInviteLink(ctx, communityJID, reset)
+}
+
 // SendAdminInvite mengirim undangan bergabung ke grup private
 func (c *Client) SendAdminInvite(ctx context.Context, chat types.JID, groupJID types.JID, groupName, caption string, inviteCode string, expiration int64, thumb []byte) error {
 	msg := &waE2E.Message{
