@@ -16,34 +16,29 @@ import (
 )
 
 // SetGroupProfilePicture mengonversi, menormalkan, dan mengatur foto profil grup (avatar)
-// Menguji dual-method:
-// Method 1: sendGroupIQ dengan Target = groupJID (standar whatsmeow & Baileys)
-// Method 2: Fallback query direct to @g.us stanza jika server WhatsApp memerlukan format IQ set langsung
+// Mengikuti standar persis Baileys/WhatsApp:
+// - Dimensi 640x640 center crop
+// - Baseline JPEG murni (strip seluruh marker APP0-APP15 dan COM)
+// - Stanza IQ xmlns="w:profile:picture" target=groupJID
 func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID, rawImageBytes []byte) (string, error) {
 	if len(rawImageBytes) == 0 {
 		return c.SetGroupPhoto(ctx, groupJID, nil)
 	}
 
-	// 1. Normalisasi gambar menjadi pure baseline JPEG 640x640 menggunakan ffmpeg
-	// WhatsApp Web / Baileys: sharp(buffer).resize(640, 640).jpeg({ quality: 50 })
-	// Menggunakan -fflags +bitexact -flags:v +bitexact untuk membersihkan komentar Lavc / metadata non-standar
+	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
 	cmd := exec.Command(
 		"ffmpeg",
 		"-y",
 		"-i", "pipe:0",
 		"-vf", "scale=640:640:force_original_aspect_ratio=increase,crop=640:640",
-		"-fflags", "+bitexact",
-		"-flags:v", "+bitexact",
-		"-pix_fmt", "yuvj420p",
-		"-vcodec", "mjpeg",
-		"-q:v", "6",
+		"-pix_fmt", "yuv420p",
 		"-f", "image2",
 		"pipe:1",
 	)
 	cmd.Stdin = bytes.NewReader(rawImageBytes)
 	jpegBytes, err := cmd.Output()
 
-	// 2. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library (quality 60)
+	// 2. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library (quality 50)
 	if err != nil || len(jpegBytes) == 0 {
 		img, _, decErr := image.Decode(bytes.NewReader(rawImageBytes))
 		if decErr != nil {
@@ -71,15 +66,19 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		}
 
 		var buf bytes.Buffer
-		encErr := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 60})
+		encErr := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 50})
 		if encErr != nil {
 			return "", fmt.Errorf("gagal encode jpeg: %w", encErr)
 		}
 		jpegBytes = buf.Bytes()
 	}
 
-	// Method 1: Coba standard whatsmeow SetGroupPhoto
-	picID, err := c.SetGroupPhoto(ctx, groupJID, jpegBytes)
+	// 3. Bersihkan seluruh marker APP0-APP15 (JFIF, EXIF, dsb) dan komentar (COM)
+	// Server WhatsApp secara ketat mewajibkan byte stream JPEG murni tanpa header asing
+	cleanBytes := StripJPEGMetadata(jpegBytes)
+
+	// Method 1: Coba standard whatsmeow SetGroupPhoto dengan cleanBytes
+	picID, err := c.SetGroupPhoto(ctx, groupJID, cleanBytes)
 	if err == nil && picID != "" {
 		return picID, nil
 	}
@@ -88,7 +87,7 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 	groupNode := waBinary.Node{
 		Tag:     "picture",
 		Attrs:   waBinary.Attrs{"type": "image"},
-		Content: jpegBytes,
+		Content: cleanBytes,
 	}
 	resp, sendErr := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", groupJID, groupNode)
 	if sendErr == nil && resp != nil {
@@ -106,4 +105,54 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 	}
 
 	return "", err
+}
+
+// StripJPEGMetadata menghapus marker APP0..APP15 dan COM dari stream JPEG,
+// menghasilkan pure baseline stream yang identik dengan output library Sharp (Baileys standard).
+func StripJPEGMetadata(data []byte) []byte {
+	if len(data) < 4 || data[0] != 0xff || data[1] != 0xd8 {
+		return data
+	}
+
+	res := make([]byte, 0, len(data))
+	res = append(res, 0xff, 0xd8)
+	i := 2
+	for i < len(data) {
+		if data[i] == 0xff && i+1 < len(data) {
+			marker := data[i+1]
+			// Marker tanpa payload length
+			if marker == 0xd8 || marker == 0x00 || (marker >= 0xd0 && marker <= 0xd7) {
+				res = append(res, data[i], marker)
+				i += 2
+				continue
+			}
+			// End of Image (EOI) atau Start of Scan (SOS): scan data dimulai, salin sisa payload
+			if marker == 0xd9 || marker == 0xda {
+				res = append(res, data[i:]...)
+				break
+			}
+
+			if i+3 >= len(data) {
+				res = append(res, data[i:]...)
+				break
+			}
+			length := (int(data[i+2]) << 8) | int(data[i+3])
+			if i+2+length > len(data) {
+				res = append(res, data[i:]...)
+				break
+			}
+
+			// Buang APP0-APP15 (0xe0 - 0xef) dan Comment (0xfe)
+			if (marker >= 0xe0 && marker <= 0xef) || marker == 0xfe {
+				i += 2 + length
+			} else {
+				res = append(res, data[i:i+2+length]...)
+				i += 2 + length
+			}
+		} else {
+			res = append(res, data[i])
+			i++
+		}
+	}
+	return res
 }
