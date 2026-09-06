@@ -127,3 +127,20 @@ func FormatMentionList(jids []types.JID) (text string, mentions []string) {
 	}
 	return strings.Join(tags, " "), mentions
 }
+
+// GetDevice memprediksi tipe perangkat pengirim pesan (ios, android, web, desktop) berdasarkan ID pesan
+func GetDevice(id string) string {
+	if len(id) >= 21 && (strings.HasPrefix(id, "3EB0") || strings.HasPrefix(id, "3E")) {
+		return "web"
+	}
+	if len(id) == 20 && strings.HasPrefix(id, "3A") {
+		return "ios"
+	}
+	if len(id) == 21 || len(id) == 32 {
+		return "android"
+	}
+	if strings.HasPrefix(id, "3F") || len(id) == 18 {
+		return "desktop"
+	}
+	return "unknown"
+}
