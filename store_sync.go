@@ -126,6 +126,15 @@ func (c *Client) AttachMessageStore(store *MemoryMessageStore) {
 				}
 			}
 
+			// Auto-register LID <-> Phone Number mapping jika tersedia pada event pesan
+			if c.LIDResolver != nil {
+				senderPN := evt.Info.Sender.ToNonAD()
+				senderLID := evt.Info.SenderAlt.ToNonAD()
+				if senderPN.Server == "s.whatsapp.net" && senderLID.Server == "lid" {
+					c.LIDResolver.RegisterMapping(senderLID.String(), senderPN.String())
+				}
+			}
+
 			store.Put(&CachedMessage{
 				ID:        evt.Info.ID,
 				Chat:      evt.Info.Chat,
