@@ -39,7 +39,13 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	var stickers []*waE2E.StickerPackMessage_Sticker
 
-	for _, itemData := range stickerItems {
+	for _, rawItem := range stickerItems {
+		// Tambahkan metadata EXIF resmi jika belum ada
+		itemData, errMeta := AddStickerMetadata(rawItem, packName, publisher)
+		if errMeta != nil || len(itemData) == 0 {
+			itemData = rawItem
+		}
+
 		h := sha256.Sum256(itemData)
 		// Format Base64URL tanpa padding (RawURLEncoding) 43 karakter sesuai WhatsApp / Baileys
 		b64Clean := base64.RawURLEncoding.EncodeToString(h[:])
@@ -60,7 +66,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 			Emojis:             []string{""},
 			FileName:           proto.String(fileName),
 			IsAnimated:         proto.Bool(false),
-			AccessibilityLabel: proto.String(""),
+			AccessibilityLabel: proto.String(packName),
 			IsLottie:           proto.Bool(false),
 			Mimetype:           proto.String("image/webp"),
 		})
@@ -102,7 +108,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	}
 
 	// Generate 252x252 JPEG thumbnail untuk tray icon
-	cmdThumb := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=252:252:force_original_aspect_ratio=decrease,pad=252:252:(252-iw)/2:(252-ih)/2:color=0x00000000", "-vcodec", "mjpeg", "-f", "image2", "pipe:1")
+	cmdThumb := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=252:252:force_original_aspect_ratio=decrease,pad=252:252:(252-iw)/2:(252-ih)/2:color=white", "-vcodec", "mjpeg", "-f", "image2", "pipe:1")
 	cmdThumb.Stdin = bytes.NewReader(stickerItems[0])
 	thumbJpeg, err := cmdThumb.Output()
 	if err != nil || len(thumbJpeg) == 0 {
