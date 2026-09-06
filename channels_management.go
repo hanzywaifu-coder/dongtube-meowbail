@@ -3,6 +3,7 @@ package meowbail
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -187,6 +188,28 @@ func FormatMention(textWithAt string, participants []types.GroupParticipant) (cl
 		}
 	}
 	return textWithAt, mentionedJIDs
+}
+
+// NewsletterAdminCount mengambil jumlah admin pada saluran via Mex GraphQL (Baileys newsletterAdminCount parity)
+func (c *Client) NewsletterAdminCount(ctx context.Context, jid types.JID) (int, error) {
+	variables := map[string]any{
+		"newsletter_id": jid.String(),
+	}
+	const queryAdminCountNewsletter = "7130823597031706"
+	raw, err := c.Client.DangerousInternals().SendMexIQ(ctx, queryAdminCountNewsletter, variables)
+	if err != nil {
+		return 0, err
+	}
+
+	var resp struct {
+		Xwa2NewsletterAdminCount struct {
+			AdminCount int `json:"admin_count"`
+		} `json:"xwa2_newsletter_admin_count"`
+	}
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return 0, err
+	}
+	return resp.Xwa2NewsletterAdminCount.AdminCount, nil
 }
 
 // CheckBotAdmin mengecek apakah nomor bot sendiri adalah admin di grup tujuan
