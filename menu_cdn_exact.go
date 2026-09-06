@@ -37,24 +37,46 @@ func (c *Client) SendRawCDNMenu(ctx context.Context, chat types.JID, thumbBytes 
 
 	bloksDataRaw := `{"version":"v0.9","createSurface":{"surfaceId":"starcore-widget=b4e9d374-935e-4f69-9329-73a548d05b67","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json","components":[{"id":"root","component":"Column","children":["card_2","card_6","button_8"]},{"id":"text_0","component":"Text","text":"Selamat Malam, Al!\n\n╭┈┈⬡「 ɪɴꜰᴏ ʙᴏᴛ 」\n┃ ɴᴀᴍᴇ     : Dongtube\n┃ ᴠᴇʀꜱɪᴏɴ  : v0.0.1\n┃ ᴜᴘᴛɪᴍᴇ   : 45m 47d\n┃ ᴍᴏᴅᴇ     : ꜱᴇʟꜰ\n┃ ᴄᴏᴍᴍᴀɴᴅꜱ : 243\n╰┈┈┈┈┈┈┈┈⬡\n\n╭┈┈⬡「 ɪɴꜰᴏ ᴜꜱᴇʀ 」\n┃ ɴᴀᴍᴀ   : Al\n┃ ᴀᴋꜱᴇꜱ  :  ᴏᴡɴᴇʀ\n┃ ʟɪᴍɪᴛ  :  ᴜɴʟɪᴍɪᴛᴇᴅ\n┃ ᴅᴀꜰᴛᴀʀ :  ʙᴇʟᴜᴍ\n╰┈┈┈┈┈┈┈┈⬡","variant":"body"},{"id":"column_1","component":"Column","children":["text_0"]},{"id":"card_2","component":"Card","child":"column_1"},{"id":"divider_3","component":"Divider"},{"id":"text_4","component":"Text","text":"Halo, Al. Saya adalah Dongtube sebuah bot asisten WhatsApp. Apakah ada yang bisa saya bantu? Silakan tekan tombol untuk menampilkan halaman menu berikutnya.","variant":"body"},{"id":"column_5","component":"Column","children":["divider_3","text_4"]},{"id":"card_6","component":"Card","child":"column_5"},{"id":"text_7","component":"Text","text":"ᴏᴡɴᴇʀ","variant":"body"},{"id":"button_8","component":"Button","child":"text_7","variant":"primary","action":{"call":"openUrl","args":{"url":"https://wa.me/6283143961588"}}}]}}`
 
+	header := &waE2E.InteractiveMessage_Header{
+		HasMediaAttachment: proto.Bool(true),
+	}
+	if len(thumbBytes) > 0 {
+		uploaded, err := c.Client.Upload(ctx, thumbBytes, whatsmeow.MediaImage)
+		if err == nil && uploaded.DirectPath != "" {
+			header.Media = &waE2E.InteractiveMessage_Header_ImageMessage{
+				ImageMessage: &waE2E.ImageMessage{
+					URL:           proto.String(uploaded.URL),
+					DirectPath:    proto.String(uploaded.DirectPath),
+					MediaKey:      uploaded.MediaKey,
+					Mimetype:      proto.String("image/jpeg"),
+					FileEncSHA256: uploaded.FileEncSHA256,
+					FileSHA256:    uploaded.FileSHA256,
+					FileLength:    proto.Uint64(uploaded.FileLength),
+					JPEGThumbnail: thumbBytes,
+				},
+			}
+		}
+	}
+
+	if header.Media == nil {
+		header.Media = &waE2E.InteractiveMessage_Header_LocationMessage{
+			LocationMessage: &waE2E.LocationMessage{
+				DegreesLatitude:  proto.Float64(0),
+				DegreesLongitude: proto.Float64(0),
+				Name:             proto.String(""),
+				Address:          proto.String(""),
+				JPEGThumbnail:    thumbBytes,
+			},
+		}
+	}
+
 	msg := &waE2E.Message{
 		MessageContextInfo: &waE2E.MessageContextInfo{
 			ThreadID:      make([]*waE2E.ThreadID, 0),
 			MessageSecret: secretBytes,
 		},
 		InteractiveMessage: &waE2E.InteractiveMessage{
-			Header: &waE2E.InteractiveMessage_Header{
-				HasMediaAttachment: proto.Bool(true),
-				Media: &waE2E.InteractiveMessage_Header_LocationMessage{
-					LocationMessage: &waE2E.LocationMessage{
-						DegreesLatitude:  proto.Float64(0),
-						DegreesLongitude: proto.Float64(0),
-						Name:             proto.String(""),
-						Address:          proto.String(""),
-						JPEGThumbnail:    thumbBytes,
-					},
-				},
-			},
+			Header: header,
 			Body: &waE2E.InteractiveMessage_Body{
 				Text: proto.String("\u0000"),
 			},
