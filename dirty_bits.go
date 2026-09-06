@@ -29,3 +29,14 @@ func (c *Client) CleanDirtyBits(ctx context.Context, dirtyType string) error {
 
 	return c.Client.DangerousInternals().SendNode(ctx, queryNode)
 }
+
+// GetServerPreKeyCount mengambil jumlah sisa pre-keys yang masih tersedia di server WhatsApp
+// Parity dengan Baileys getAvailablePreKeysOnServer (iq xmlns="encrypt" type="get" <count/>)
+func (c *Client) GetServerPreKeyCount(ctx context.Context) (int, error) {
+	return c.Client.DangerousInternals().GetServerPreKeyCount(ctx)
+}
+
+// UploadPreKeys mengunggah pre-keys baru ke server WhatsApp
+func (c *Client) UploadPreKeys(ctx context.Context, initialUpload bool) {
+	c.Client.DangerousInternals().UploadPreKeys(ctx, initialUpload)
+}
