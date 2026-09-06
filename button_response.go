@@ -50,14 +50,6 @@ func HandleButtonResponse(evt interface{}) (string, bool) {
 				}
 			}
 		}
-
-		// Body text fallback dari tombol
-		if e.Message.InteractiveResponseMessage.Body != nil {
-			bodyText := strings.TrimSpace(e.Message.InteractiveResponseMessage.Body.GetText())
-			if bodyText != "" {
-				return bodyText, true
-			}
-		}
 	}
 
 	return "", false
