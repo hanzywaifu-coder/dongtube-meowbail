@@ -357,7 +357,7 @@ func (c *Client) SendReaction(ctx context.Context, chat types.JID, msgID types.M
 	return err
 }
 
-// SendPoll sends a poll message
+// SendPoll sends a poll message (auto-routes to PollCreationMessageV3 if single-select)
 func (c *Client) SendPoll(ctx context.Context, chat types.JID, name string, options []string, selectableCount int) error {
 	var pollOptions []*waE2E.PollCreationMessage_Option
 	for _, opt := range options {
@@ -366,12 +366,45 @@ func (c *Client) SendPoll(ctx context.Context, chat types.JID, name string, opti
 		})
 	}
 
-	msg := &waE2E.Message{
-		PollCreationMessage: &waE2E.PollCreationMessage{
-			Name:                   proto.String(name),
-			Options:                pollOptions,
-			SelectableOptionsCount: proto.Uint32(uint32(selectableCount)),
+	poll := &waE2E.PollCreationMessage{
+		Name:                   proto.String(name),
+		Options:                pollOptions,
+		SelectableOptionsCount: proto.Uint32(uint32(selectableCount)),
+	}
+
+	msg := &waE2E.Message{}
+	if selectableCount == 1 {
+		msg.PollCreationMessageV3 = poll
+	} else {
+		msg.PollCreationMessage = poll
+	}
+
+	_, err := c.Client.SendMessage(ctx, chat, msg)
+	return err
+}
+
+// SendQuizPoll sends a quiz poll with a designated correct answer
+func (c *Client) SendQuizPoll(ctx context.Context, chat types.JID, name string, options []string, correctAnswer string) error {
+	var pollOptions []*waE2E.PollCreationMessage_Option
+	for _, opt := range options {
+		pollOptions = append(pollOptions, &waE2E.PollCreationMessage_Option{
+			OptionName: proto.String(opt),
+		})
+	}
+
+	quizType := waE2E.PollType_QUIZ
+	poll := &waE2E.PollCreationMessage{
+		Name:                   proto.String(name),
+		Options:                pollOptions,
+		SelectableOptionsCount: proto.Uint32(1),
+		PollType:               &quizType,
+		CorrectAnswer: &waE2E.PollCreationMessage_Option{
+			OptionName: proto.String(correctAnswer),
 		},
+	}
+
+	msg := &waE2E.Message{
+		PollCreationMessageV3: poll,
 	}
 
 	_, err := c.Client.SendMessage(ctx, chat, msg)
