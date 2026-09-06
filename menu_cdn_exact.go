@@ -26,9 +26,9 @@ func (c *Client) SendRawCDNMenu(ctx context.Context, chat types.JID, thumbBytes 
 	expTime := time.Now().Add(30 * 24 * time.Hour).UnixMilli()
 	offerMap := map[string]interface{}{
 		"limited_time_offer": map[string]interface{}{
-			"text":            "Dongtube Bot Assistant",
+			"text":            "",
 			"url":             "https://wa.me/6283143961588",
-			"copy_code":       "Dongtube Bot Assistant - https://wa.me/6283143961588",
+			"copy_code":       "Dongtube",
 			"expiration_time": expTime,
 		},
 	}
