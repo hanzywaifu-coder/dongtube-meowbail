@@ -27,24 +27,41 @@ func (lr *LIDResolver) RegisterMapping(lid, pn string) {
 	if lid == "" || pn == "" {
 		return
 	}
+
+	lidParsed, errL := types.ParseJID(strings.TrimSpace(lid))
+	pnParsed, errP := types.ParseJID(strings.TrimSpace(pn))
+
+	var lidNorm, pnNorm string
+	if errL == nil {
+		lidNorm = strings.ToLower(lidParsed.ToNonAD().String())
+	} else {
+		lidNorm = strings.ToLower(strings.TrimSpace(lid))
+	}
+
+	if errP == nil {
+		pnNorm = strings.ToLower(pnParsed.ToNonAD().String())
+	} else {
+		pnNorm = strings.ToLower(strings.TrimSpace(pn))
+	}
+
 	lr.mu.Lock()
 	defer lr.mu.Unlock()
-
-	lidNorm := strings.ToLower(strings.TrimSpace(lid))
-	pnNorm := strings.ToLower(strings.TrimSpace(pn))
 
 	lr.lidToPN[lidNorm] = pnNorm
 	lr.pnToLID[pnNorm] = lidNorm
 }
 
+
 // ResolveToPN mengembalikan Phone Number JID jika input berupa LID JID
 func (lr *LIDResolver) ResolveToPN(jid types.JID) types.JID {
-	if jid.Server != "lid" {
+	if jid.Server != types.HiddenUserServer && jid.Server != types.HostedLIDServer && jid.Server != "lid" {
 		return jid
 	}
 
+	normKey := strings.ToLower(jid.ToNonAD().String())
+
 	lr.mu.RLock()
-	pnStr, exists := lr.lidToPN[jid.String()]
+	pnStr, exists := lr.lidToPN[normKey]
 	lr.mu.RUnlock()
 
 	if exists {
@@ -58,12 +75,14 @@ func (lr *LIDResolver) ResolveToPN(jid types.JID) types.JID {
 
 // ResolveToLID mengembalikan LID JID jika input berupa Phone Number JID
 func (lr *LIDResolver) ResolveToLID(jid types.JID) types.JID {
-	if jid.Server == "lid" {
+	if jid.Server == types.HiddenUserServer || jid.Server == types.HostedLIDServer || jid.Server == "lid" {
 		return jid
 	}
 
+	normKey := strings.ToLower(jid.ToNonAD().String())
+
 	lr.mu.RLock()
-	lidStr, exists := lr.pnToLID[jid.String()]
+	lidStr, exists := lr.pnToLID[normKey]
 	lr.mu.RUnlock()
 
 	if exists {
@@ -74,3 +93,5 @@ func (lr *LIDResolver) ResolveToLID(jid types.JID) types.JID {
 	}
 	return jid
 }
+
+
