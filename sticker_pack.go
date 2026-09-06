@@ -45,6 +45,9 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 			itemData = rawItem
 		}
 
+		// Deteksi apakah stiker WebP animasi (memiliki chunk ANIM / ANMF)
+		isAnim := bytes.Contains(itemData, []byte("ANIM")) || bytes.Contains(itemData, []byte("ANMF"))
+
 		h := sha256.Sum256(itemData)
 		// Format Base64URL tanpa padding (RawURLEncoding) 43 karakter sesuai WhatsApp / Baileys
 		b64Clean := base64.RawURLEncoding.EncodeToString(h[:])
@@ -55,7 +58,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		stickers = append(stickers, &waE2E.StickerPackMessage_Sticker{
 			Emojis:             []string{""},
 			FileName:           proto.String(fileName),
-			IsAnimated:         proto.Bool(false),
+			IsAnimated:         proto.Bool(isAnim),
 			AccessibilityLabel: proto.String(packName),
 			IsLottie:           proto.Bool(false),
 			Mimetype:           proto.String("image/webp"),
