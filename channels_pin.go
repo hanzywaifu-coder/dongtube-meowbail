@@ -2,7 +2,9 @@ package meowbail
 
 import (
 	"context"
+	"time"
 
+	"go.mau.fi/whatsmeow/appstate"
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
@@ -52,6 +54,30 @@ func (c *Client) PinMessage(ctx context.Context, chat types.JID, targetMsgID typ
 
 	_, err := c.Client.SendMessage(ctx, chat, msg)
 	return err
+}
+
+// PinChat menyematkan atau melepas sematan obrolan di daftar chat utama (App State Sync)
+func (c *Client) PinChat(ctx context.Context, chat types.JID, pin bool) error {
+	patch := appstate.BuildPin(chat, pin)
+	return c.Client.SendAppState(ctx, patch)
+}
+
+// MuteChat membisukan atau mengaktifkan kembali notifikasi obrolan untuk durasi tertentu (0 = selamanya)
+func (c *Client) MuteChat(ctx context.Context, chat types.JID, mute bool, duration time.Duration) error {
+	patch := appstate.BuildMute(chat, mute, duration)
+	return c.Client.SendAppState(ctx, patch)
+}
+
+// ArchiveChat mengarsipkan atau membuka arsip obrolan
+func (c *Client) ArchiveChat(ctx context.Context, chat types.JID, archive bool) error {
+	patch := appstate.BuildArchive(chat, archive, time.Now(), nil)
+	return c.Client.SendAppState(ctx, patch)
+}
+
+// MarkChatAsRead menandai obrolan sebagai sudah dibaca atau belum dibaca
+func (c *Client) MarkChatAsRead(ctx context.Context, chat types.JID, read bool) error {
+	patch := appstate.BuildMarkChatAsRead(chat, read, time.Now(), nil)
+	return c.Client.SendAppState(ctx, patch)
 }
 
 // NewsletterFollow mengikuti newsletter/saluran WhatsApp
