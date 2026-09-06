@@ -58,8 +58,12 @@ func (c *Client) SendCarousel(ctx context.Context, chat types.JID, text string, 
 					ButtonParamsJSON: proto.String(string(params)),
 				})
 			case ButtonCTAURL:
+				displayText := btn.DisplayText
+				if displayText == "" {
+					displayText = btn.Text
+				}
 				params, _ := json.Marshal(map[string]interface{}{
-					"display_text": btn.DisplayText,
+					"display_text": displayText,
 					"url":          btn.URL,
 					"merchant_url": btn.URL,
 				})
@@ -118,18 +122,26 @@ func (c *Client) SendCarousel(ctx context.Context, chat types.JID, text string, 
 		Cards: protoCards,
 	}
 
+	interactiveMsg := &waE2E.InteractiveMessage{
+		Header: &waE2E.InteractiveMessage_Header{
+			HasMediaAttachment: proto.Bool(false),
+		},
+		Body: &waE2E.InteractiveMessage_Body{
+			Text: proto.String(text),
+		},
+		Footer: &waE2E.InteractiveMessage_Footer{
+			Text: proto.String("Dongtube"),
+		},
+		InteractiveMessage: &waE2E.InteractiveMessage_CarouselMessage_{
+			CarouselMessage: carouselMessage,
+		},
+		ContextInfo: buildNewsletterContext(c.config),
+	}
+
 	msg := &waE2E.Message{
 		ViewOnceMessage: &waE2E.FutureProofMessage{
 			Message: &waE2E.Message{
-				InteractiveMessage: &waE2E.InteractiveMessage{
-					Body: &waE2E.InteractiveMessage_Body{
-						Text: proto.String(text),
-					},
-					InteractiveMessage: &waE2E.InteractiveMessage_CarouselMessage_{
-						CarouselMessage: carouselMessage,
-					},
-					ContextInfo: buildNewsletterContext(c.config),
-				},
+				InteractiveMessage: interactiveMsg,
 			},
 		},
 	}
