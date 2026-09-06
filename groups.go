@@ -3,6 +3,7 @@ package meowbail
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -17,6 +18,38 @@ func (c *Client) GetGroupInfo(ctx context.Context, groupJID types.JID) (*types.G
 // GetGroupInviteLink gets group invite link
 func (c *Client) GetGroupInviteLink(ctx context.Context, groupJID types.JID, reset bool) (string, error) {
 	return c.Client.GetGroupInviteLink(ctx, groupJID, reset)
+}
+
+// GetGroupInfoFromInviteLink mengambil metadata grup dari link undangan chat.whatsapp.com/xxx
+func (c *Client) GetGroupInfoFromInviteLink(ctx context.Context, linkOrCode string) (*types.GroupInfo, error) {
+	code := linkOrCode
+	if idx := strings.Index(code, "chat.whatsapp.com/"); idx != -1 {
+		code = code[idx+len("chat.whatsapp.com/"):]
+		if slashIdx := strings.Index(code, "/"); slashIdx != -1 {
+			code = code[:slashIdx]
+		}
+		if qIdx := strings.Index(code, "?"); qIdx != -1 {
+			code = code[:qIdx]
+		}
+	}
+	code = strings.TrimSpace(code)
+	return c.Client.GetGroupInfoFromLink(ctx, code)
+}
+
+// JoinGroupWithInviteLink bergabung ke grup menggunakan link undangan
+func (c *Client) JoinGroupWithInviteLink(ctx context.Context, linkOrCode string) (types.JID, error) {
+	code := linkOrCode
+	if idx := strings.Index(code, "chat.whatsapp.com/"); idx != -1 {
+		code = code[idx+len("chat.whatsapp.com/"):]
+		if slashIdx := strings.Index(code, "/"); slashIdx != -1 {
+			code = code[:slashIdx]
+		}
+		if qIdx := strings.Index(code, "?"); qIdx != -1 {
+			code = code[:qIdx]
+		}
+	}
+	code = strings.TrimSpace(code)
+	return c.Client.JoinGroupWithLink(ctx, code)
 }
 
 // SetGroupName sets group name
