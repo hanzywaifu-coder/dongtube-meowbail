@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -65,12 +66,31 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		})
 	}
 
+	// Ekstrak frame 1 jika stiker pertama adalah WebP animasi (agar ffmpeg tidak error 'skipping unsupported chunk: ANIM')
+	coverSample := stickerItems[0]
+	if bytes.Contains(coverSample, []byte("ANIM")) || bytes.Contains(coverSample, []byte("ANMF")) {
+		tmpIn, errIn := os.CreateTemp("", "anim-cover-*.webp")
+		if errIn == nil {
+			_, _ = tmpIn.Write(coverSample)
+			_ = tmpIn.Close()
+			frameOut := tmpIn.Name() + ".frame1.webp"
+			cmdExtract := exec.Command("webpmux", "-get", "frame", "1", tmpIn.Name(), "-o", frameOut)
+			if errExt := cmdExtract.Run(); errExt == nil {
+				if fb, errRead := os.ReadFile(frameOut); errRead == nil && len(fb) > 0 {
+					coverSample = fb
+				}
+				_ = os.Remove(frameOut)
+			}
+			_ = os.Remove(tmpIn.Name())
+		}
+	}
+
 	// Buat tray_icon.webp 96x96 sesuai ukuran standar WhatsApp tray icon
 	cmdTray := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=96:96:force_original_aspect_ratio=decrease,pad=96:96:(96-iw)/2:(96-ih)/2:color=0x00000000", "-vcodec", "libwebp", "-f", "webp", "pipe:1")
-	cmdTray.Stdin = bytes.NewReader(stickerItems[0])
+	cmdTray.Stdin = bytes.NewReader(coverSample)
 	trayBytes, err := cmdTray.Output()
 	if err != nil || len(trayBytes) == 0 {
-		trayBytes = stickerItems[0]
+		trayBytes = coverSample
 	}
 
 	// Masukkan tray cover ke zip dengan nama baku WhatsApp: tray_icon.webp
@@ -97,11 +117,11 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	// Generate 252x252 JPEG thumbnail untuk tray icon
 	cmdThumb := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=252:252:force_original_aspect_ratio=decrease,pad=252:252:(252-iw)/2:(252-ih)/2:color=white", "-vcodec", "mjpeg", "-f", "image2", "pipe:1")
-	cmdThumb.Stdin = bytes.NewReader(stickerItems[0])
+	cmdThumb.Stdin = bytes.NewReader(coverSample)
 	thumbJpeg, err := cmdThumb.Output()
 	if err != nil || len(thumbJpeg) == 0 {
 		cmdThumbFallback := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=252:252", "-vcodec", "mjpeg", "-f", "image2", "pipe:1")
-		cmdThumbFallback.Stdin = bytes.NewReader(stickerItems[0])
+		cmdThumbFallback.Stdin = bytes.NewReader(coverSample)
 		thumbJpeg, _ = cmdThumbFallback.Output()
 	}
 
