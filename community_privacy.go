@@ -2,6 +2,7 @@ package meowbail
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -101,6 +102,36 @@ func (c *Client) CommunityLeave(ctx context.Context, communityJID types.JID) err
 // CommunityGetInviteLink mengambil kode link undangan Komunitas WhatsApp
 func (c *Client) CommunityGetInviteLink(ctx context.Context, communityJID types.JID, reset bool) (string, error) {
 	return c.Client.GetGroupInviteLink(ctx, communityJID, reset)
+}
+
+// CommunityToggleEphemeral mengatur pesan sementara di komunitas WhatsApp
+func (c *Client) CommunityToggleEphemeral(ctx context.Context, communityJID types.JID, ephemeralDuration time.Duration) error {
+	var content waBinary.Node
+	if ephemeralDuration > 0 {
+		content = waBinary.Node{
+			Tag: "ephemeral",
+			Attrs: waBinary.Attrs{
+				"expiration": fmt.Sprintf("%d", int(ephemeralDuration.Seconds())),
+			},
+		}
+	} else {
+		content = waBinary.Node{
+			Tag:   "not_ephemeral",
+			Attrs: waBinary.Attrs{},
+		}
+	}
+	_, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", communityJID, content)
+	return err
+}
+
+// CommunitySettingUpdate memperbarui pengaturan komunitas (announcement, not_announcement, locked, unlocked)
+func (c *Client) CommunitySettingUpdate(ctx context.Context, communityJID types.JID, setting string) error {
+	content := waBinary.Node{
+		Tag:   setting,
+		Attrs: waBinary.Attrs{},
+	}
+	_, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", communityJID, content)
+	return err
 }
 
 // CommunityAcceptInvite bergabung ke Komunitas WhatsApp via invite code
