@@ -12,10 +12,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// SendStickerPackFromMedia mengunggah media stiker yang dikirim/di-reply dan membuat StickerPackMessage resmi WhatsApp
-func (c *Client) SendStickerPackFromMedia(ctx context.Context, chat types.JID, stickerWebpData []byte, packName, publisher string) error {
-	if len(stickerWebpData) == 0 {
-		return fmt.Errorf("data stiker kosong")
+// SendStickerPackMultipleMedia mengunggah kumpulan media stiker dan menggabungkannya ke dalam 1 pesan StickerPackMessage
+func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JID, stickerItems [][]byte, packName, publisher string) error {
+	if len(stickerItems) == 0 {
+		return fmt.Errorf("daftar stiker kosong")
 	}
 
 	if packName == "" {
@@ -25,51 +25,66 @@ func (c *Client) SendStickerPackFromMedia(ctx context.Context, chat types.JID, s
 		publisher = "Dongtube"
 	}
 
-	// Upload stiker media ke server WhatsApp menggunakan media type yang tepat
-	uploaded, err := c.UploadMedia(ctx, stickerWebpData, whatsmeow.MediaStickerPack)
-	if err != nil {
-		uploaded, err = c.UploadMedia(ctx, stickerWebpData, whatsmeow.MediaImage)
+	var stickers []*waE2E.StickerPackMessage_Sticker
+	var firstUploaded *whatsmeow.UploadResponse
+	var totalLength uint64
+
+	for i, itemData := range stickerItems {
+		uploaded, err := c.UploadMedia(ctx, itemData, whatsmeow.MediaStickerPack)
 		if err != nil {
-			return fmt.Errorf("upload sticker pack: %w", err)
+			uploaded, err = c.UploadMedia(ctx, itemData, whatsmeow.MediaImage)
+			if err != nil {
+				continue
+			}
 		}
+
+		if firstUploaded == nil {
+			firstUploaded = uploaded
+		}
+		totalLength += uploaded.FileLength
+
+		h := sha256.Sum256(itemData)
+		fileName := fmt.Sprintf("%x.webp", h[:16])
+
+		stickers = append(stickers, &waE2E.StickerPackMessage_Sticker{
+			Emojis:             []string{""},
+			FileName:           proto.String(fileName),
+			IsAnimated:         proto.Bool(false),
+			AccessibilityLabel: proto.String(fmt.Sprintf("%s #%d", packName, i+1)),
+			IsLottie:           proto.Bool(false),
+			Mimetype:           proto.String("image/webp"),
+		})
 	}
 
-	h := sha256.Sum256(stickerWebpData)
-	fileName := fmt.Sprintf("%x.webp", h[:16])
+	if len(stickers) == 0 || firstUploaded == nil {
+		return fmt.Errorf("tidak ada stiker yang berhasil diunggah")
+	}
 
+	hPack := sha256.Sum256([]byte(fmt.Sprintf("%s_%d", packName, time.Now().UnixNano())))
 	origin := waE2E.StickerPackMessage_USER_CREATED
 	disappearingModeInitiator := waE2E.DisappearingMode_CHANGED_IN_CHAT
 
 	msg := &waE2E.Message{
 		StickerPackMessage: &waE2E.StickerPackMessage{
-			Stickers: []*waE2E.StickerPackMessage_Sticker{
-				{
-					Emojis:             []string{""},
-					FileName:           proto.String(fileName),
-					IsAnimated:         proto.Bool(false),
-					AccessibilityLabel: proto.String(packName),
-					IsLottie:           proto.Bool(false),
-					Mimetype:           proto.String("image/webp"),
-				},
-			},
-			StickerPackID:       proto.String(fmt.Sprintf("Pack_%x", h[:8])),
+			Stickers:            stickers,
+			StickerPackID:       proto.String(fmt.Sprintf("Pack_%x", hPack[:8])),
 			Name:                proto.String(packName),
 			Publisher:           proto.String(publisher),
-			FileLength:          proto.Uint64(uploaded.FileLength),
-			FileSHA256:          uploaded.FileSHA256,
-			FileEncSHA256:       uploaded.FileEncSHA256,
-			MediaKey:            uploaded.MediaKey,
-			DirectPath:          proto.String(uploaded.DirectPath),
-			PackDescription:     proto.String("Sticker pack dari " + packName),
+			FileLength:          proto.Uint64(totalLength),
+			FileSHA256:          firstUploaded.FileSHA256,
+			FileEncSHA256:       firstUploaded.FileEncSHA256,
+			MediaKey:            firstUploaded.MediaKey,
+			DirectPath:          proto.String(firstUploaded.DirectPath),
+			PackDescription:     proto.String(fmt.Sprintf("%s berisi %d stiker", packName, len(stickers))),
 			MediaKeyTimestamp:   proto.Int64(time.Now().Unix()),
 			TrayIconFileName:    proto.String("tray_icon.webp"),
-			ThumbnailDirectPath: proto.String(uploaded.DirectPath),
-			ThumbnailSHA256:     uploaded.FileSHA256,
-			ThumbnailEncSHA256:  uploaded.FileEncSHA256,
+			ThumbnailDirectPath: proto.String(firstUploaded.DirectPath),
+			ThumbnailSHA256:     firstUploaded.FileSHA256,
+			ThumbnailEncSHA256:  firstUploaded.FileEncSHA256,
 			ThumbnailHeight:     proto.Uint32(252),
 			ThumbnailWidth:      proto.Uint32(252),
-			ImageDataHash:       proto.String(fmt.Sprintf("%x", h[:])),
-			StickerPackSize:     proto.Uint64(uploaded.FileLength),
+			ImageDataHash:       proto.String(fmt.Sprintf("%x", hPack[:])),
+			StickerPackSize:     proto.Uint64(totalLength),
 			StickerPackOrigin:   &origin,
 			ContextInfo: &waE2E.ContextInfo{
 				IsForwarded:     proto.Bool(true),
@@ -82,6 +97,11 @@ func (c *Client) SendStickerPackFromMedia(ctx context.Context, chat types.JID, s
 		},
 	}
 
-	_, err = c.Client.SendMessage(ctx, chat, msg)
+	_, err := c.Client.SendMessage(ctx, chat, msg)
 	return err
+}
+
+// SendStickerPackFromMedia wrapper backward-compatibility untuk 1 stiker
+func (c *Client) SendStickerPackFromMedia(ctx context.Context, chat types.JID, stickerWebpData []byte, packName, publisher string) error {
+	return c.SendStickerPackMultipleMedia(ctx, chat, [][]byte{stickerWebpData}, packName, publisher)
 }
