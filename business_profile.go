@@ -68,3 +68,91 @@ func (c *Client) UpdateBusinessProfile(ctx context.Context, props BusinessProfil
 
 	return c.Client.DangerousInternals().SendNode(ctx, queryNode)
 }
+
+// BusinessProfileInfo data detail profil bisnis WhatsApp
+type BusinessProfileInfo struct {
+	JID         types.JID
+	Address     string
+	Description string
+	Website     []string
+	Email       string
+	Category    string
+}
+
+// GetBusinessProfile mengambil detail profil bisnis akun WhatsApp (Baileys getBusinessProfile parity)
+func (c *Client) GetBusinessProfile(ctx context.Context, jid types.JID) (*BusinessProfileInfo, error) {
+	if jid.IsEmpty() {
+		if c.Client != nil && c.Client.Store != nil && c.Client.Store.ID != nil {
+			jid = *c.Client.Store.ID
+		}
+	}
+
+	queryNode := waBinary.Node{
+		Tag: "iq",
+		Attrs: waBinary.Attrs{
+			"to":    types.ServerJID.String(),
+			"type":  "get",
+			"xmlns": "w:biz",
+		},
+		Content: []waBinary.Node{
+			{
+				Tag: "business_profile",
+				Attrs: waBinary.Attrs{
+					"v": "244",
+				},
+				Content: []waBinary.Node{
+					{
+						Tag: "profile",
+						Attrs: waBinary.Attrs{
+							"jid": jid.ToNonAD().String(),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resp, err := c.Client.DangerousInternals().SendNodeAndGetData(ctx, queryNode)
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := waBinary.Unmarshal(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	bpNode, ok := node.GetOptionalChildByTag("business_profile")
+	if !ok {
+		return nil, nil
+	}
+
+	profNode, ok := bpNode.GetOptionalChildByTag("profile")
+	if !ok {
+		return nil, nil
+	}
+
+	info := &BusinessProfileInfo{
+		JID: jid,
+	}
+
+	if addr, ok := profNode.GetOptionalChildByTag("address"); ok {
+		info.Address = string(addr.Content.([]byte))
+	}
+	if desc, ok := profNode.GetOptionalChildByTag("description"); ok {
+		info.Description = string(desc.Content.([]byte))
+	}
+	if email, ok := profNode.GetOptionalChildByTag("email"); ok {
+		info.Email = string(email.Content.([]byte))
+	}
+	if web, ok := profNode.GetOptionalChildByTag("website"); ok {
+		info.Website = append(info.Website, string(web.Content.([]byte)))
+	}
+	if cats, ok := profNode.GetOptionalChildByTag("categories"); ok {
+		if cat, ok := cats.GetOptionalChildByTag("category"); ok {
+			info.Category = string(cat.Content.([]byte))
+		}
+	}
+
+	return info, nil
+}
