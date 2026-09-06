@@ -123,6 +123,86 @@ process.stdin.on('end', async () => {
 	return "", err
 }
 
+// SetOwnProfilePicture mengubah foto profil (avatar) akun WhatsApp bot itu sendiri (Personal / Account PP)
+// Parity dengan Baileys updateProfilePicture(sock.user.id)
+func (c *Client) SetOwnProfilePicture(ctx context.Context, rawImageBytes []byte) (string, error) {
+	if c.Client.Store == nil || c.Client.Store.ID == nil {
+		return "", fmt.Errorf("koneksi bot belum terautentikasi")
+	}
+
+	ownJID := c.Client.Store.ID.ToNonAD()
+	if len(rawImageBytes) == 0 {
+		return c.Client.SetGroupPhoto(ctx, ownJID, nil)
+	}
+
+	var jpegBytes []byte
+	sharpCmd := exec.Command("node", "-e", `
+const sharp = require('/root/sc/node_modules/sharp');
+const chunks = [];
+process.stdin.on('data', c => chunks.push(c));
+process.stdin.on('end', async () => {
+  try {
+    const input = Buffer.concat(chunks);
+    const out = await sharp(input)
+      .resize(640, 640, { fit: 'cover' })
+      .jpeg({ quality: 50, progressive: false })
+      .toBuffer();
+    process.stdout.write(out);
+  } catch (err) {
+    process.stderr.write(err.message);
+    process.exit(1);
+  }
+});
+`)
+	sharpCmd.Stdin = bytes.NewReader(rawImageBytes)
+	sharpOut, sharpErr := sharpCmd.Output()
+	if sharpErr == nil && len(sharpOut) > 0 {
+		jpegBytes = sharpOut
+	} else {
+		cmd := exec.Command(
+			"ffmpeg",
+			"-i", "pipe:0",
+			"-vf", "scale=640:640:force_original_aspect_ratio=increase,crop=640:640",
+			"-f", "image2",
+			"-vcodec", "mjpeg",
+			"-q:v", "5",
+			"pipe:1",
+		)
+		cmd.Stdin = bytes.NewReader(rawImageBytes)
+		out, err := cmd.Output()
+		if err == nil && len(out) > 0 {
+			jpegBytes = out
+		}
+	}
+
+	if len(jpegBytes) == 0 {
+		src, _, err := image.Decode(bytes.NewReader(rawImageBytes))
+		if err != nil {
+			return "", fmt.Errorf("gagal decode gambar: %w", err)
+		}
+		b := src.Bounds()
+		sz := min(b.Dx(), b.Dy())
+		x0 := b.Min.X + (b.Dx()-sz)/2
+		y0 := b.Min.Y + (b.Dy()-sz)/2
+		dst := image.NewRGBA(image.Rect(0, 0, sz, sz))
+		for y := 0; y < sz; y++ {
+			for x := 0; x < sz; x++ {
+				dst.Set(x, y, src.At(x0+x, y0+y))
+			}
+		}
+		var buf bytes.Buffer
+		encErr := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 50})
+		if encErr != nil {
+			return "", fmt.Errorf("gagal encode jpeg: %w", encErr)
+		}
+		jpegBytes = buf.Bytes()
+	}
+
+	cleanBytes := StripJPEGMetadata(jpegBytes)
+	return c.Client.SetGroupPhoto(ctx, ownJID, cleanBytes)
+}
+
+
 // StripJPEGMetadata menghapus marker APP0..APP15 dan COM dari stream JPEG,
 // menghasilkan pure baseline stream yang identik dengan output library Sharp (Baileys standard).
 func StripJPEGMetadata(data []byte) []byte {
