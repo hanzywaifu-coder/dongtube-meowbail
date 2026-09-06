@@ -102,6 +102,13 @@ type DisappearingDurationInfo struct {
 	Duration time.Duration
 }
 
+// UserStatusInfo hasil kueri status / bio / about pengguna WhatsApp
+type UserStatusInfo struct {
+	JID    types.JID
+	Status string
+	SetAt  time.Time
+}
+
 // FetchDisappearingDuration mengambil durasi disappearing mode aktif dari satu atau lebih kontak melalui protokol USync
 // Parity dengan Baileys fetchDisappearingDuration
 func (c *Client) FetchDisappearingDuration(ctx context.Context, jids []types.JID) ([]DisappearingDurationInfo, error) {
@@ -144,3 +151,55 @@ func (c *Client) FetchDisappearingDuration(ctx context.Context, jids []types.JID
 
 	return results, nil
 }
+
+// FetchStatus mengambil status teks (About / Bio) dari satu atau lebih kontak melalui protokol USync
+// Parity dengan Baileys fetchStatus
+func (c *Client) FetchStatus(ctx context.Context, jids []types.JID) ([]UserStatusInfo, error) {
+	if len(jids) == 0 {
+		return nil, nil
+	}
+
+	query := []waBinary.Node{
+		{Tag: "status"},
+	}
+
+	listNode, err := c.Client.DangerousInternals().Usync(ctx, jids, "query", "interactive", query)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []UserStatusInfo
+	for _, userNode := range listNode.GetChildren() {
+		if userNode.Tag != "user" {
+			continue
+		}
+		ag := userNode.AttrGetter()
+		targetJID := ag.OptionalJIDOrEmpty("jid")
+		if targetJID.IsEmpty() {
+			targetJID = ag.OptionalJIDOrEmpty("pn_jid")
+		}
+
+		statusNode, ok := userNode.GetOptionalChildByTag("status")
+		var statusText string
+		var setAt time.Time
+		if ok {
+			contentBytes, isBytes := statusNode.Content.([]byte)
+			if isBytes {
+				statusText = string(contentBytes)
+			}
+			tSec := statusNode.AttrGetter().OptionalInt("t")
+			if tSec > 0 {
+				setAt = time.Unix(int64(tSec), 0)
+			}
+		}
+
+		results = append(results, UserStatusInfo{
+			JID:    targetJID,
+			Status: statusText,
+			SetAt:  setAt,
+		})
+	}
+
+	return results, nil
+}
+
