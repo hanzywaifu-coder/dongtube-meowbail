@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 )
@@ -83,6 +84,14 @@ func (c *Client) AddEventHandler(handler func(evt interface{})) uint32 {
 
 // Connect wraps whatsmeow's Connect and performs auto-follow if configured
 func (c *Client) Connect(ctx context.Context) error {
+	// Sync versi WhatsApp Web terbaru secara otomatis untuk mencegah 405 out of date
+	go func() {
+		ver, err := whatsmeow.GetLatestVersion(context.Background(), nil)
+		if err == nil && ver != nil {
+			store.SetWAVersion(*ver)
+		}
+	}()
+
 	err := c.Client.Connect()
 	if err != nil {
 		return err
