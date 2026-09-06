@@ -98,12 +98,20 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	zipBytes := zipBuf.Bytes()
 
-	// 1. Upload ZIP stiker pack dengan MediaType resmi MediaStickerPack
-	uploadedZip, err := c.UploadMedia(ctx, zipBytes, whatsmeow.MediaStickerPack)
+	// 1. Upload ZIP stiker pack ke WhatsApp MMS khusus Sticker Pack
+	uploadedZip, err := c.uploadRawMediaToMMS(ctx, zipBytes, "WhatsApp Sticker Pack Keys", "/mms/sticker-pack", nil)
 	if err != nil {
-		uploadedZip, err = c.UploadMedia(ctx, zipBytes, whatsmeow.MediaDocument)
-		if err != nil {
-			return fmt.Errorf("upload zip sticker pack: %w", err)
+		// Fallback ke uploader umum jika host khusus gagal
+		resp, errUp := c.UploadMedia(ctx, zipBytes, whatsmeow.MediaStickerPack)
+		if errUp != nil {
+			return fmt.Errorf("upload zip sticker pack: %w", errUp)
+		}
+		uploadedZip = &uploadedPackItem{
+			DirectPath:    resp.DirectPath,
+			FileSHA256:    resp.FileSHA256,
+			FileEncSHA256: resp.FileEncSHA256,
+			MediaKey:      resp.MediaKey,
+			FileLength:    resp.FileLength,
 		}
 	}
 
@@ -122,16 +130,14 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	var thumbEncSha256 []byte
 	var imageDataHash string
 
-	// 2. Upload thumbnail JPEG (MediaLinkThumbnail)
+	// 2. Upload thumbnail JPEG ke MMS khusus Thumbnail Sticker Pack dengan MediaKey yang SAMA dengan ZIP pack
 	if len(thumbJpeg) > 0 {
-		hThumb := sha256.Sum256(thumbJpeg)
-		imageDataHash = base64.StdEncoding.EncodeToString(hThumb[:])
-
-		uploadedThumb, errThumb := c.UploadMedia(ctx, thumbJpeg, whatsmeow.MediaLinkThumbnail)
+		uploadedThumb, errThumb := c.uploadRawMediaToMMS(ctx, thumbJpeg, "WhatsApp Sticker Pack Thumbnail Keys", "/mms/thumbnail-sticker-pack", uploadedZip.MediaKey)
 		if errThumb == nil && uploadedThumb != nil {
 			thumbDirectPath = uploadedThumb.DirectPath
 			thumbSha256 = uploadedThumb.FileSHA256
 			thumbEncSha256 = uploadedThumb.FileEncSHA256
+			imageDataHash = base64.StdEncoding.EncodeToString(thumbSha256)
 		}
 	}
 
@@ -140,8 +146,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		thumbSha256 = uploadedZip.FileSHA256
 		thumbEncSha256 = uploadedZip.FileEncSHA256
 		if imageDataHash == "" {
-			hZip := sha256.Sum256(zipBytes)
-			imageDataHash = base64.StdEncoding.EncodeToString(hZip[:])
+			imageDataHash = base64.StdEncoding.EncodeToString(thumbSha256)
 		}
 	}
 
