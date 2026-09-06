@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.mau.fi/whatsmeow"
+	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
@@ -98,6 +99,44 @@ func (c *Client) CommunityLeave(ctx context.Context, communityJID types.JID) err
 // CommunityGetInviteLink mengambil kode link undangan Komunitas WhatsApp
 func (c *Client) CommunityGetInviteLink(ctx context.Context, communityJID types.JID, reset bool) (string, error) {
 	return c.Client.GetGroupInviteLink(ctx, communityJID, reset)
+}
+
+// CommunityParticipantsUpdate memperbarui status partisipan di komunitas (promote, demote, remove dari seluruh grup terkait)
+func (c *Client) CommunityParticipantsUpdate(ctx context.Context, communityJID types.JID, participants []types.JID, action whatsmeow.ParticipantChange) ([]types.GroupParticipant, error) {
+	if action == whatsmeow.ParticipantChangeRemove {
+		// Remove dari komunitas sekaligus linked groups
+		content := make([]waBinary.Node, len(participants))
+		for i, p := range participants {
+			content[i] = waBinary.Node{
+				Tag:   "participant",
+				Attrs: waBinary.Attrs{"jid": p},
+			}
+		}
+		resp, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", communityJID, waBinary.Node{
+			Tag:     "remove",
+			Attrs:   waBinary.Attrs{"linked_groups": "true"},
+			Content: content,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if resp != nil {
+			removeNode, ok := resp.GetOptionalChildByTag("remove")
+			if ok {
+				participantNodes := removeNode.GetChildrenByTag("participant")
+				res := make([]types.GroupParticipant, len(participantNodes))
+				for i, node := range participantNodes {
+					res[i] = types.GroupParticipant{
+						JID: node.AttrGetter().JID("jid"),
+					}
+				}
+				return res, nil
+			}
+		}
+		return nil, nil
+	}
+
+	return c.Client.UpdateGroupParticipants(ctx, communityJID, participants, action)
 }
 
 // SendAdminInvite mengirim undangan bergabung ke grup private
