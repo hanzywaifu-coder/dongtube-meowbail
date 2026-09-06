@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
-	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
@@ -175,13 +174,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		},
 	}
 
-	attrs := waBinary.Attrs{"type": "media"}
-	_, err = c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
-		AdditionalNodes: &[]waBinary.Node{{
-			Tag:   "additional_attributes",
-			Attrs: attrs,
-		}},
-	})
+	_, err = c.Client.SendMessage(ctx, chat, msg)
 	return err
 }
 
