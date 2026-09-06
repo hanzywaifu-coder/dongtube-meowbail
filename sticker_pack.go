@@ -40,11 +40,15 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	var stickers []*waE2E.StickerPackMessage_Sticker
 
 	for _, rawItem := range stickerItems {
+		// Perbaiki ukuran header RIFF jika berasal dari pipe streaming
+		rawItem = FixWebPRIFFHeader(rawItem)
+
 		// Tambahkan metadata EXIF resmi jika belum ada
 		itemData, errMeta := AddStickerMetadata(rawItem, packName, publisher)
 		if errMeta != nil || len(itemData) == 0 {
 			itemData = rawItem
 		}
+		itemData = FixWebPRIFFHeader(itemData)
 
 		// Deteksi apakah stiker WebP animasi (memiliki chunk ANIM / ANMF)
 		isAnim := bytes.Contains(itemData, []byte("ANIM")) || bytes.Contains(itemData, []byte("ANMF"))
@@ -67,7 +71,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	}
 
 	// Ekstrak frame 1 jika stiker pertama adalah WebP animasi (agar ffmpeg tidak error 'skipping unsupported chunk: ANIM')
-	coverSample := stickerItems[0]
+	coverSample := FixWebPRIFFHeader(stickerItems[0])
 	if bytes.Contains(coverSample, []byte("ANIM")) || bytes.Contains(coverSample, []byte("ANMF")) {
 		tmpIn, errIn := os.CreateTemp("", "anim-cover-*.webp")
 		if errIn == nil {
@@ -77,7 +81,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 			cmdExtract := exec.Command("webpmux", "-get", "frame", "1", tmpIn.Name(), "-o", frameOut)
 			if errExt := cmdExtract.Run(); errExt == nil {
 				if fb, errRead := os.ReadFile(frameOut); errRead == nil && len(fb) > 0 {
-					coverSample = fb
+					coverSample = FixWebPRIFFHeader(fb)
 				}
 				_ = os.Remove(frameOut)
 			}
@@ -92,6 +96,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	if err != nil || len(trayBytes) == 0 {
 		trayBytes = coverSample
 	}
+	trayBytes = FixWebPRIFFHeader(trayBytes)
 
 	// Masukkan tray cover ke zip dengan nama baku WhatsApp: tray_icon.webp
 	zipWriter.AddFile(trayIconFileName, trayBytes)

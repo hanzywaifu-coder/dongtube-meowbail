@@ -8,11 +8,25 @@ import (
 	"github.com/hanzywaifu-coder/dongtube-meowbail/core"
 )
 
+// FixWebPRIFFHeader memperbaiki ukuran RIFF header file WebP jika dihasilkan dari ffmpeg pipe (yang menulis RIFF size 0)
+func FixWebPRIFFHeader(data []byte) []byte {
+	if len(data) >= 12 && string(data[0:4]) == "RIFF" && string(data[8:12]) == "WEBP" {
+		size := uint32(len(data) - 8)
+		data[4] = byte(size)
+		data[5] = byte(size >> 8)
+		data[6] = byte(size >> 16)
+		data[7] = byte(size >> 24)
+	}
+	return data
+}
+
 // AddStickerMetadata menyuntikkan metadata EXIF resmi (PackName, Publisher, Emojis) ke dalam binary file WebP menggunakan webpmux
 func AddStickerMetadata(webpBytes []byte, packName, publisher string) ([]byte, error) {
 	if len(webpBytes) == 0 {
 		return nil, fmt.Errorf("webp bytes kosong")
 	}
+
+	webpBytes = FixWebPRIFFHeader(webpBytes)
 
 	meta := core.StickerMetadata{
 		PackName:  packName,
