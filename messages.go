@@ -342,12 +342,24 @@ func (c *Client) SendContact(ctx context.Context, chat types.JID, name, phone st
 }
 
 // SendReaction sends a reaction to a message
-func (c *Client) SendReaction(ctx context.Context, chat types.JID, msgID types.MessageID, emoji string) error {
+func (c *Client) SendReaction(ctx context.Context, chat types.JID, msgID types.MessageID, emoji string, sender ...types.JID) error {
+	key := &waCommon.MessageKey{
+		RemoteJID: proto.String(chat.String()),
+		ID:        proto.String(string(msgID)),
+	}
+	if len(sender) > 0 && !sender[0].IsEmpty() {
+		fromMe := false
+		if c.Client != nil && c.Client.Store != nil && c.Client.Store.ID != nil {
+			fromMe = sender[0].ToNonAD().User == c.Client.Store.ID.ToNonAD().User
+		}
+		key.FromMe = proto.Bool(fromMe)
+		if chat.Server == types.GroupServer {
+			key.Participant = proto.String(sender[0].String())
+		}
+	}
+
 	reaction := &waE2E.ReactionMessage{
-		Key: &waCommon.MessageKey{
-			RemoteJID: proto.String(chat.String()),
-			ID:        proto.String(string(msgID)),
-		},
+		Key:  key,
 		Text: proto.String(emoji),
 	}
 
