@@ -36,6 +36,13 @@ func (c *Client) MarkReadSimple(ctx context.Context, chat types.JID, messageIDs 
 	return c.Client.MarkRead(ctx, messageIDs, time.Now(), chat, types.EmptyJID)
 }
 
+// MarkVoicePlayed menandai voice note atau audio yang diterima sebagai sudah didengarkan (mic biru menyala)
+// Parity dengan Baileys readMessages([key], 'played')
+func (c *Client) MarkVoicePlayed(ctx context.Context, chat types.JID, sender types.JID, messageIDs []types.MessageID) error {
+	return c.Client.MarkRead(ctx, messageIDs, time.Now(), chat, sender, types.ReceiptTypePlayed)
+}
+
+
 // SetBotPresence mengatur status online bot (Available / Unavailable)
 func (c *Client) SetBotPresence(ctx context.Context, isAvailable bool) error {
 	state := types.PresenceUnavailable
