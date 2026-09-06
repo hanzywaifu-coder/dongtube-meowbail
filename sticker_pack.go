@@ -8,10 +8,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os/exec"
-	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
+	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
@@ -32,7 +32,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	packHash := sha256.Sum256([]byte(fmt.Sprintf("%s_%d", packName, time.Now().UnixNano())))
 	packID := fmt.Sprintf("Pack_%x", packHash[:8])
-	trayIconFileName := fmt.Sprintf("%s.webp", packID)
+	trayIconFileName := "tray_icon.webp"
 
 	// Build ZIP container (metode Store / uncompressed) sesuai spesifikasi WA sticker pack
 	zipBuf := new(bytes.Buffer)
@@ -42,8 +42,9 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	for i, itemData := range stickerItems {
 		h := sha256.Sum256(itemData)
-		b64Hash := base64.StdEncoding.EncodeToString(h[:])
-		fileName := strings.ReplaceAll(b64Hash, "/", "-") + ".webp"
+		// Gunakan RawURLEncoding (tanpa padding '=') persis seperti WhatsApp client
+		b64Hash := base64.RawURLEncoding.EncodeToString(h[:])
+		fileName := b64Hash + ".webp"
 
 		w, err := zw.CreateHeader(&zip.FileHeader{
 			Name:   fileName,
@@ -66,7 +67,15 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		})
 	}
 
-	// Masukkan tray cover ke zip
+	// Buat tray_icon.webp 96x96 sesuai ukuran standar WhatsApp tray icon
+	cmdTray := exec.Command("ffmpeg", "-i", "pipe:0", "-vf", "scale=96:96:force_original_aspect_ratio=decrease,pad=96:96:(96-iw)/2:(96-ih)/2:color=0x00000000", "-vcodec", "libwebp", "-f", "webp", "pipe:1")
+	cmdTray.Stdin = bytes.NewReader(stickerItems[0])
+	trayBytes, err := cmdTray.Output()
+	if err != nil || len(trayBytes) == 0 {
+		trayBytes = stickerItems[0]
+	}
+
+	// Masukkan tray cover ke zip dengan nama baku WhatsApp: tray_icon.webp
 	wTray, err := zw.CreateHeader(&zip.FileHeader{
 		Name:   trayIconFileName,
 		Method: zip.Store,
@@ -74,7 +83,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	if err != nil {
 		return fmt.Errorf("create zip tray: %w", err)
 	}
-	if _, err := wTray.Write(stickerItems[0]); err != nil {
+	if _, err := wTray.Write(trayBytes); err != nil {
 		return fmt.Errorf("write zip tray: %w", err)
 	}
 
@@ -166,7 +175,13 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		},
 	}
 
-	_, err = c.Client.SendMessage(ctx, chat, msg)
+	attrs := waBinary.Attrs{"type": "media"}
+	_, err = c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
+		AdditionalNodes: &[]waBinary.Node{{
+			Tag:   "additional_attributes",
+			Attrs: attrs,
+		}},
+	})
 	return err
 }
 
