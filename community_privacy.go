@@ -288,3 +288,21 @@ func (c *Client) CommunityFetchLinkedGroups(ctx context.Context, jid types.JID) 
 
 	return results, nil
 }
+
+// CommunityRequestParticipantsList mengambil daftar permintaan bergabung (membership approval requests) di Komunitas
+// Parity dengan Baileys communityRequestParticipantsList
+func (c *Client) CommunityRequestParticipantsList(ctx context.Context, communityJID types.JID) ([]types.GroupParticipantRequest, error) {
+	return c.Client.GetGroupRequestParticipants(ctx, communityJID)
+}
+
+// CommunityRequestParticipantsUpdate menyetujui atau menolak permintaan bergabung Komunitas
+// Parity dengan Baileys communityRequestParticipantsUpdate
+func (c *Client) CommunityRequestParticipantsUpdate(ctx context.Context, communityJID types.JID, participants []types.JID, approve bool) ([]types.GroupParticipant, error) {
+	action := whatsmeow.ParticipantChangeReject
+	if approve {
+		action = whatsmeow.ParticipantChangeApprove
+	}
+	return c.Client.UpdateGroupRequestParticipants(ctx, communityJID, participants, action)
+}
+
+
