@@ -15,6 +15,11 @@ func (c *Client) GetGroupInfo(ctx context.Context, groupJID types.JID) (*types.G
 	return c.Client.GetGroupInfo(ctx, groupJID)
 }
 
+// GetJoinedGroups mengambil seluruh daftar grup tempat bot bergabung beserta metadata lengkapnya
+func (c *Client) GetJoinedGroups(ctx context.Context) ([]*types.GroupInfo, error) {
+	return c.Client.GetJoinedGroups(ctx)
+}
+
 // GetGroupInviteLink gets group invite link
 func (c *Client) GetGroupInviteLink(ctx context.Context, groupJID types.JID, reset bool) (string, error) {
 	return c.Client.GetGroupInviteLink(ctx, groupJID, reset)
