@@ -80,6 +80,7 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 
 	// 3. Log detail ukuran JPEG sebelum dikirim
 	// WhatsApp menolak profile picture jika payload melebih batas max IQ bytes
+	fmt.Printf("[meowbail] SetGroupProfilePicture: target=%s, jpegSize=%d bytes\n", groupJID, len(jpegBytes))
 	return c.SetGroupPhoto(ctx, groupJID, jpegBytes)
 }
 
