@@ -2,6 +2,9 @@ package meowbail
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/json"
+	"fmt"
 
 	"go.mau.fi/whatsmeow/proto/waAICommon"
 	"go.mau.fi/whatsmeow/proto/waAICommonDeprecated"
@@ -9,6 +12,14 @@ import (
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
 )
+
+func generateRandomUUID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
 
 // SendAITableResponse mengirim pesan tabel AI bergaya Meta AI / rich response message
 func (c *Client) SendAITableResponse(ctx context.Context, chat types.JID, title string, headers []string, rows [][]string) error {
@@ -41,6 +52,37 @@ func (c *Client) SendAITableResponse(ctx context.Context, chat types.JID, title 
 		},
 	}
 
+	// Bangun format unified response JSON untuk engine render UI WhatsApp
+	var unifiedRows []map[string]interface{}
+	for _, tr := range tableRows {
+		var cells []map[string]string
+		for _, it := range tr.Items {
+			cells = append(cells, map[string]string{"text": it})
+		}
+		unifiedRows = append(unifiedRows, map[string]interface{}{
+			"is_header":      tr.GetIsHeading(),
+			"cells":          tr.Items,
+			"markdown_cells": cells,
+		})
+	}
+
+	unifiedObj := map[string]interface{}{
+		"response_id": generateRandomUUID(),
+		"sections": []map[string]interface{}{
+			{
+				"view_model": map[string]interface{}{
+					"primitive": map[string]interface{}{
+						"title":      title,
+						"rows":       unifiedRows,
+						"__typename": "GenATableUXPrimitive",
+					},
+					"__typename": "GenAISingleLayoutViewModel",
+				},
+			},
+		},
+	}
+	unifiedJSON, _ := json.Marshal(unifiedObj)
+
 	richMsgType := waAICommonDeprecated.AIRichResponseMessageType_AI_RICH_RESPONSE_TYPE_STANDARD
 	botMsg := &waE2E.Message{
 		BotForwardedMessage: &waE2E.FutureProofMessage{
@@ -48,8 +90,12 @@ func (c *Client) SendAITableResponse(ctx context.Context, chat types.JID, title 
 				RichResponseMessage: &waE2E.AIRichResponseMessage{
 					MessageType: &richMsgType,
 					Submessages: submessages,
+					UnifiedResponse: &waAICommon.AIRichResponseUnifiedResponse{
+						Data: unifiedJSON,
+					},
 					ContextInfo: &waE2E.ContextInfo{
-						IsForwarded: proto.Bool(true),
+						IsForwarded:   proto.Bool(true),
+						ForwardOrigin: waE2E.ContextInfo_META_AI.Enum(),
 						ForwardedAiBotMessageInfo: &waAICommon.ForwardedAIBotMessageInfo{
 							BotJID: proto.String("867051314767696@bot"),
 						},
@@ -66,7 +112,7 @@ func (c *Client) SendAITableResponse(ctx context.Context, chat types.JID, title 
 // SendAICodeResponse mengirim pesan format code block dengan syntax highlight khas Meta AI
 func (c *Client) SendAICodeResponse(ctx context.Context, chat types.JID, title, code, language string) error {
 	if language == "" {
-		language = "go"
+		language = "javascript"
 	}
 
 	codeSubMsgType := waAICommonDeprecated.AIRichResponseSubMessageType_AI_RICH_RESPONSE_CODE
@@ -87,6 +133,28 @@ func (c *Client) SendAICodeResponse(ctx context.Context, chat types.JID, title, 
 		},
 	}
 
+	unifiedObj := map[string]interface{}{
+		"response_id": generateRandomUUID(),
+		"sections": []map[string]interface{}{
+			{
+				"view_model": map[string]interface{}{
+					"primitive": map[string]interface{}{
+						"language": language,
+						"code_blocks": []map[string]string{
+							{
+								"content": code,
+								"type":    "DEFAULT",
+							},
+						},
+						"__typename": "GenAICodeUXPrimitive",
+					},
+					"__typename": "GenAISingleLayoutViewModel",
+				},
+			},
+		},
+	}
+	unifiedJSON, _ := json.Marshal(unifiedObj)
+
 	richMsgType := waAICommonDeprecated.AIRichResponseMessageType_AI_RICH_RESPONSE_TYPE_STANDARD
 	botMsg := &waE2E.Message{
 		BotForwardedMessage: &waE2E.FutureProofMessage{
@@ -94,8 +162,12 @@ func (c *Client) SendAICodeResponse(ctx context.Context, chat types.JID, title, 
 				RichResponseMessage: &waE2E.AIRichResponseMessage{
 					MessageType: &richMsgType,
 					Submessages: submessages,
+					UnifiedResponse: &waAICommon.AIRichResponseUnifiedResponse{
+						Data: unifiedJSON,
+					},
 					ContextInfo: &waE2E.ContextInfo{
-						IsForwarded: proto.Bool(true),
+						IsForwarded:   proto.Bool(true),
+						ForwardOrigin: waE2E.ContextInfo_META_AI.Enum(),
 						ForwardedAiBotMessageInfo: &waAICommon.ForwardedAIBotMessageInfo{
 							BotJID: proto.String("867051314767696@bot"),
 						},
@@ -104,8 +176,6 @@ func (c *Client) SendAICodeResponse(ctx context.Context, chat types.JID, title, 
 			},
 		},
 	}
-
-	_ = waAICommon.AIRichResponseUnifiedResponse{} // ensure waAICommon import satisfies compiler
 
 	_, err := c.Client.SendMessage(ctx, chat, botMsg)
 	return err
