@@ -159,6 +159,9 @@ func (c *Client) SendTextMessageWithPreview(ctx context.Context, chat types.JID,
 	msg := &waE2E.Message{
 		ExtendedTextMessage: extMsg,
 	}
+	if extMsg.ContextInfo == nil {
+		extMsg.ContextInfo = buildNewsletterContext(c.config)
+	}
 
 	_, err := c.Client.SendMessage(ctx, chat, msg)
 	return err
