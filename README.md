@@ -19,7 +19,7 @@ Dibuat dari nol untuk menjadi pustaka WhatsApp nomor 1, independen, modern, dan 
 | **Anti-Ban Presence & Human Entropy** | ❌ Tidak ada | ⚠️ Plugin terpisah | ✅ **Built-in `SendWithAntiBan`** |
 | **Order & Payment Review NativeFlow** | ❌ Tidak ada | ⚠️ Parsial | ✅ **Built-in Helper** |
 | **Carousel & Slider Cards** | ❌ Manual proto | ✅ Ya | ✅ **SendCarousel Helper** |
-| **Multi-Media Album** | ❌ Manual proto | ✅ Ya | ✅ **SendAlbum Helper** |
+| **Multi-Media Album** | ❌ Manual proto | ✅ Ya | ✅ **SendWhatsAppMediaAlbum Helper** |
 | **Menu Interactive / Dropdown** | ❌ Rumit | ✅ Ya (ViewOnce Document) | ✅ **Built-in Helper** |
 | **Newsletter / Forward Saluran** | ⚠️ Parsial | ✅ Ya | ✅ **Full Forwarding Context** |
 
