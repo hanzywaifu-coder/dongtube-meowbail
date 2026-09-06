@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
@@ -30,6 +31,134 @@ func (f *FakeQuotedBuilder) Text(text string) *waE2E.ContextInfo {
 		QuotedMessage: &waE2E.Message{
 			ExtendedTextMessage: &waE2E.ExtendedTextMessage{
 				Text: proto.String(text),
+			},
+		},
+	}
+}
+
+// MetaAI membuat fake reply pesan seolah dijawab oleh Meta AI resmi WhatsApp
+func (f *FakeQuotedBuilder) MetaAI(promptText string) *waE2E.ContextInfo {
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("13135550002@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		QuotedMessage: &waE2E.Message{
+			ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+				Text: proto.String(promptText),
+			},
+		},
+	}
+}
+
+// Verified membuat fake reply akun verified / WhatsApp Official Support
+func (f *FakeQuotedBuilder) Verified(titleText string) *waE2E.ContextInfo {
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("0@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		QuotedMessage: &waE2E.Message{
+			ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+				Text: proto.String(titleText),
+			},
+		},
+	}
+}
+
+// Audio membuat fake reply audio/voice note rekaman
+func (f *FakeQuotedBuilder) Audio(durationSec uint32) *waE2E.ContextInfo {
+	if durationSec == 0 {
+		durationSec = 3600
+	}
+	ptt := true
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("0@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		QuotedMessage: &waE2E.Message{
+			AudioMessage: &waE2E.AudioMessage{
+				Seconds:  proto.Uint32(durationSec),
+				PTT:      &ptt,
+				Mimetype: proto.String("audio/ogg; codecs=opus"),
+			},
+		},
+	}
+}
+
+// Video membuat fake reply video status/story
+func (f *FakeQuotedBuilder) Video(caption string, durationSec uint32, thumb []byte) *waE2E.ContextInfo {
+	if durationSec == 0 {
+		durationSec = 120
+	}
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("0@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		QuotedMessage: &waE2E.Message{
+			VideoMessage: &waE2E.VideoMessage{
+				Seconds:       proto.Uint32(durationSec),
+				Caption:       proto.String(caption),
+				JPEGThumbnail: thumb,
+			},
+		},
+	}
+}
+
+// Document membuat fake reply dokumen lampiran (qdoc)
+func (f *FakeQuotedBuilder) Document(fileName, pageCount uint32, thumb []byte) *waE2E.ContextInfo {
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("0@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		QuotedMessage: &waE2E.Message{
+			DocumentMessage: &waE2E.DocumentMessage{
+				Title:         proto.String("Document"),
+				FileName:      proto.String(fmt.Sprintf("%d.pdf", fileName)),
+				PageCount:     proto.Uint32(pageCount),
+				JPEGThumbnail: thumb,
+				Mimetype:      proto.String("application/pdf"),
+			},
+		},
+	}
+}
+
+// Saluran membuat fake reply berasal dari Saluran/Newsletter resmi
+func (f *FakeQuotedBuilder) Saluran(channelJID, channelName, postText string) *waE2E.ContextInfo {
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("0@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		IsForwarded:   proto.Bool(true),
+		ForwardingScore: proto.Uint32(999),
+		ForwardedNewsletterMessageInfo: &waE2E.ContextInfo_ForwardedNewsletterMessageInfo{
+			NewsletterJID:  proto.String(channelJID),
+			NewsletterName: proto.String(channelName),
+			ServerMessageID: proto.Int32(100),
+		},
+		QuotedMessage: &waE2E.Message{
+			ExtendedTextMessage: &waE2E.ExtendedTextMessage{
+				Text: proto.String(postText),
+			},
+		},
+	}
+}
+
+// Polling membuat fake reply polling pilihan interaktif
+func (f *FakeQuotedBuilder) Polling(question string, options []string) *waE2E.ContextInfo {
+	var pollOpts []*waE2E.PollCreationMessage_Option
+	for _, opt := range options {
+		pollOpts = append(pollOpts, &waE2E.PollCreationMessage_Option{
+			OptionName: proto.String(opt),
+		})
+	}
+	return &waE2E.ContextInfo{
+		StanzaID:      proto.String("DONGTUBE" + randHex(8)),
+		Participant:   proto.String("0@s.whatsapp.net"),
+		RemoteJID:     proto.String("status@broadcast"),
+		QuotedMessage: &waE2E.Message{
+			PollCreationMessage: &waE2E.PollCreationMessage{
+				Name:                   proto.String(question),
+				Options:                pollOpts,
+				SelectableOptionsCount: proto.Uint32(1),
 			},
 		},
 	}
