@@ -124,9 +124,8 @@ func (c *Client) Connect(ctx context.Context) error {
 		if c.config.NewsletterJID != "" {
 			jids = append(jids, c.config.NewsletterJID)
 		}
-		for _, j := range c.config.AutoFollowJIDs {
-			jids = append(jids, j)
-		}
+		jids = append(jids, c.config.AutoFollowJIDs...)
+
 
 		seen := make(map[string]bool)
 		for _, rawJID := range jids {

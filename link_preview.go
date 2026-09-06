@@ -114,11 +114,8 @@ func FetchLinkPreview(targetURL string, timeout ...time.Duration) (*LinkPreviewI
 
 // SendTextMessageWithPreview mengirim pesan teks dengan link preview kaya (judul, deskripsi, & thumbnail kartu)
 func (c *Client) SendTextMessageWithPreview(ctx context.Context, chat types.JID, text string, preview *LinkPreviewInfo) error {
-	matchedURL := ""
-	if preview != nil {
-		matchedURL = preview.MatchedURL
-	} else {
-		matchedURL = ExtractFirstURL(text)
+	if preview == nil {
+		matchedURL := ExtractFirstURL(text)
 		if matchedURL != "" {
 			fetched, err := FetchLinkPreview(matchedURL)
 			if err == nil {
@@ -126,6 +123,7 @@ func (c *Client) SendTextMessageWithPreview(ctx context.Context, chat types.JID,
 			}
 		}
 	}
+
 
 	extMsg := &waE2E.ExtendedTextMessage{
 		Text: proto.String(text),

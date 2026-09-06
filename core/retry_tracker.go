@@ -32,11 +32,9 @@ func (rt *RetrySpiralingTracker) TrackRetry(messageID string) (isSpiraling bool)
 	rt.retryCounts[messageID]++
 	rt.lastAttempts[messageID] = time.Now()
 
-	if rt.retryCounts[messageID] >= rt.maxRetries {
-		return true
-	}
-	return false
+	return rt.retryCounts[messageID] >= rt.maxRetries
 }
+
 
 // MarkSuccess mereset counter saat pesan berhasil terkirim atau diakui server
 func (rt *RetrySpiralingTracker) MarkSuccess(messageID string) {

@@ -12,14 +12,14 @@ import (
 // SocketHealthMonitor mengawasi stabilitas koneksi WebSocket WhatsApp,
 // mengukur latency ping-pong round-trip time (RTT), dan mendeteksi silent-disconnect.
 type SocketHealthMonitor struct {
-	client       *Client
-	mu           sync.RWMutex
-	lastPing     time.Time
-	lastPongRTT  time.Duration
-	failCount    int
-	isMonitoring bool
-	stopChan     chan struct{}
+	client      *Client
+	mu          sync.RWMutex
+	lastPing    time.Time
+	lastPongRTT time.Duration
+	failCount   int
+	stopChan    chan struct{}
 }
+
 
 // NewSocketHealthMonitor membuat instans baru health monitor
 func (c *Client) NewSocketHealthMonitor() *SocketHealthMonitor {

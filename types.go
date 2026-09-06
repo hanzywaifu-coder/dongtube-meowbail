@@ -7,8 +7,8 @@ import (
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
-	"google.golang.org/protobuf/proto"
 )
+
 
 // Button types
 type ButtonType int
@@ -113,17 +113,3 @@ type MessageEvent struct {
 	IsFromMe bool
 }
 
-// Helper to create proto string
-func pstr(s string) *string {
-	return proto.String(s)
-}
-
-// Helper to create proto uint32
-func puint32(v uint32) *uint32 {
-	return proto.Uint32(v)
-}
-
-// Helper to create proto bool
-func pbool(v bool) *bool {
-	return proto.Bool(v)
-}
