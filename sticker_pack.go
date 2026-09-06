@@ -156,7 +156,6 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	}
 
 	origin := waE2E.StickerPackMessage_USER_CREATED
-	disappearingModeInitiator := waE2E.DisappearingMode_CHANGED_IN_CHAT
 
 	msg := &waE2E.Message{
 		StickerPackMessage: &waE2E.StickerPackMessage{
@@ -180,14 +179,6 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 			ImageDataHash:       proto.String(imageDataHash),
 			StickerPackSize:     proto.Uint64(uint64(len(zipBytes))),
 			StickerPackOrigin:   &origin,
-			ContextInfo: &waE2E.ContextInfo{
-				IsForwarded:     proto.Bool(true),
-				ForwardingScore: proto.Uint32(1),
-				Expiration:      proto.Uint32(86400),
-				DisappearingMode: &waE2E.DisappearingMode{
-					Initiator: &disappearingModeInitiator,
-				},
-			},
 		},
 	}
 
