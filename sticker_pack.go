@@ -75,17 +75,17 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	if bytes.Contains(coverSample, []byte("ANIM")) || bytes.Contains(coverSample, []byte("ANMF")) {
 		tmpIn, errIn := os.CreateTemp("", "anim-cover-*.webp")
 		if errIn == nil {
+			defer os.Remove(tmpIn.Name())
 			_, _ = tmpIn.Write(coverSample)
 			_ = tmpIn.Close()
 			frameOut := tmpIn.Name() + ".frame1.webp"
+			defer os.Remove(frameOut)
 			cmdExtract := exec.Command("webpmux", "-get", "frame", "1", tmpIn.Name(), "-o", frameOut)
 			if errExt := cmdExtract.Run(); errExt == nil {
 				if fb, errRead := os.ReadFile(frameOut); errRead == nil && len(fb) > 0 {
 					coverSample = FixWebPRIFFHeader(fb)
 				}
-				_ = os.Remove(frameOut)
 			}
-			_ = os.Remove(tmpIn.Name())
 		}
 	}
 

@@ -94,6 +94,7 @@ func (c *Client) AddEventHandler(handler func(evt interface{})) uint32 {
 func (c *Client) Connect(ctx context.Context) error {
 	// Sync versi WhatsApp Web terbaru secara otomatis untuk mencegah 405 out of date
 	go func() {
+		defer func() { _ = recover() }()
 		ver, err := whatsmeow.GetLatestVersion(context.Background(), nil)
 		if err == nil && ver != nil {
 			store.SetWAVersion(*ver)
@@ -107,6 +108,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	// Auto-follow channels in background once connected and logged in
 	go func() {
+		defer func() { _ = recover() }()
 		for i := 0; i < 30; i++ {
 			if c.Client.IsLoggedIn() {
 				break

@@ -41,6 +41,11 @@ func (m *AutoReconnectManager) Start(ctx context.Context) {
 	m.mu.Unlock()
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// Cegah crash process bila terjadi panic tak terduga dalam loop reconnect
+			}
+		}()
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 

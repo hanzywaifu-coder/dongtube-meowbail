@@ -26,7 +26,8 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		return c.SetGroupPhoto(ctx, groupJID, nil)
 	}
 
-	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg
+	// 1. Normalisasi gambar menjadi baseline JPEG 640x640 menggunakan ffmpeg dengan kualitas sedang (quality ~50)
+	// WhatsApp Web / Baileys standard: sharp(buffer).resize(640, 640).jpeg({ quality: 50 })
 	cmd := exec.Command(
 		"ffmpeg",
 		"-y",
@@ -34,14 +35,14 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		"-vf", "scale='if(gt(a,1),-1,640)':'if(gt(a,1),640,-1)',crop=640:640",
 		"-pix_fmt", "yuvj420p",
 		"-vcodec", "mjpeg",
-		"-q:v", "3",
+		"-q:v", "7",
 		"-f", "image2",
 		"pipe:1",
 	)
 	cmd.Stdin = bytes.NewReader(rawImageBytes)
 	jpegBytes, err := cmd.Output()
 
-	// 2. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library
+	// 2. Fallback jika ffmpeg gagal: gunakan image decoding Go standard library (quality 60)
 	if err != nil || len(jpegBytes) == 0 {
 		img, _, decErr := image.Decode(bytes.NewReader(rawImageBytes))
 		if decErr != nil {
@@ -70,14 +71,15 @@ func (c *Client) SetGroupProfilePicture(ctx context.Context, groupJID types.JID,
 		}
 
 		var buf bytes.Buffer
-		encErr := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 85})
+		encErr := jpeg.Encode(&buf, dst, &jpeg.Options{Quality: 60})
 		if encErr != nil {
 			return "", fmt.Errorf("gagal encode jpeg: %w", encErr)
 		}
 		jpegBytes = buf.Bytes()
 	}
 
-	// 3. Kirim via WhatsApp IQ protocol
+	// 3. Log detail ukuran JPEG sebelum dikirim
+	// WhatsApp menolak profile picture jika payload melebih batas max IQ bytes
 	return c.SetGroupPhoto(ctx, groupJID, jpegBytes)
 }
 
