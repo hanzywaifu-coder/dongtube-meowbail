@@ -55,3 +55,21 @@ func (c *Client) GroupAcceptInviteV4FromMessage(ctx context.Context, inviter typ
 
 	return c.GroupAcceptInviteV4(ctx, groupJID, inviter, msg.GetInviteCode(), msg.GetInviteExpiration())
 }
+
+// GroupRevokeInviteV4 mencabut undangan V4 grup untuk partisipan tertentu (Baileys groupRevokeInviteV4 parity)
+func (c *Client) GroupRevokeInviteV4(ctx context.Context, groupJID types.JID, invitedJID types.JID) error {
+	queryNode := waBinary.Node{
+		Tag: "revoke",
+		Content: []waBinary.Node{
+			{
+				Tag: "participant",
+				Attrs: waBinary.Attrs{
+					"jid": invitedJID.String(),
+				},
+			},
+		},
+	}
+
+	_, err := c.Client.DangerousInternals().SendGroupIQ(ctx, "set", groupJID, queryNode)
+	return err
+}
