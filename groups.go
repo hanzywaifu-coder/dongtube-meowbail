@@ -100,6 +100,21 @@ func (c *Client) RemoveParticipant(ctx context.Context, groupJID types.JID, part
 	return err
 }
 
+// GetGroupRequestParticipants mengambil daftar permintaan bergabung (membership approval requests)
+func (c *Client) GetGroupRequestParticipants(ctx context.Context, groupJID types.JID) ([]types.GroupParticipantRequest, error) {
+	return c.Client.GetGroupRequestParticipants(ctx, groupJID)
+}
+
+// ApproveGroupRequests menyetujui calon anggota yang meminta masuk ke grup
+func (c *Client) ApproveGroupRequests(ctx context.Context, groupJID types.JID, participants ...types.JID) ([]types.GroupParticipant, error) {
+	return c.Client.UpdateGroupRequestParticipants(ctx, groupJID, participants, whatsmeow.ParticipantChangeApprove)
+}
+
+// RejectGroupRequests menolak calon anggota yang meminta masuk ke grup
+func (c *Client) RejectGroupRequests(ctx context.Context, groupJID types.JID, participants ...types.JID) ([]types.GroupParticipant, error) {
+	return c.Client.UpdateGroupRequestParticipants(ctx, groupJID, participants, whatsmeow.ParticipantChangeReject)
+}
+
 // AddParticipant adds a participant to group
 func (c *Client) AddParticipant(ctx context.Context, groupJID types.JID, participants ...types.JID) error {
 	_, err := c.Client.UpdateGroupParticipants(ctx, groupJID, participants, whatsmeow.ParticipantChangeAdd)
