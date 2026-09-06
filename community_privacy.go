@@ -50,6 +50,16 @@ func (c *Client) UnlinkSubgroupFromCommunity(ctx context.Context, communityJID t
 	return c.Client.UnlinkGroup(ctx, communityJID, groupJID)
 }
 
+// GetCommunitySubGroups mengambil seluruh grup anak / subgroup yang terhubung ke komunitas
+func (c *Client) GetCommunitySubGroups(ctx context.Context, communityJID types.JID) ([]*types.GroupLinkTarget, error) {
+	return c.Client.GetSubGroups(ctx, communityJID)
+}
+
+// GetCommunityParticipants mengambil seluruh partisipan dari semua grup dalam komunitas
+func (c *Client) GetCommunityParticipants(ctx context.Context, communityJID types.JID) ([]types.JID, error) {
+	return c.Client.GetLinkedGroupsParticipants(ctx, communityJID)
+}
+
 // SendAdminInvite mengirim undangan bergabung ke grup private
 func (c *Client) SendAdminInvite(ctx context.Context, chat types.JID, groupJID types.JID, groupName, caption string, inviteCode string, expiration int64, thumb []byte) error {
 	msg := &waE2E.Message{
