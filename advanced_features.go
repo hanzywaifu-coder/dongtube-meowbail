@@ -86,7 +86,15 @@ func (c *Client) ForwardMessage(ctx context.Context, toChat types.JID, rawMsg *w
 func (c *Client) SendPTTVoiceNote(ctx context.Context, chat types.JID, oggOpusData []byte, waveform []byte) error {
 	uploaded, err := c.UploadMedia(ctx, oggOpusData, whatsmeow.MediaAudio)
 	if err != nil {
-		return fmt.Errorf("upload audio: %w", err)
+		return err
+	}
+
+	if len(waveform) == 0 {
+		// Generate 64-sample realistic waveform jika tidak disediakan
+		waveform = make([]byte, 64)
+		for i := range waveform {
+			waveform[i] = byte(20 + (i*7)%60)
+		}
 	}
 
 	ptt := true
