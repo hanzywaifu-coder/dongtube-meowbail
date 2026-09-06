@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os/exec"
+	"strings"
 	"time"
 
 	"go.mau.fi/whatsmeow"
@@ -31,7 +32,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	packHash := sha256.Sum256([]byte(fmt.Sprintf("%s_%d", packName, time.Now().UnixNano())))
 	packID := fmt.Sprintf("Pack_%x", packHash[:8])
-	trayIconFileName := "tray_icon.webp"
+	trayIconFileName := fmt.Sprintf("%s.webp", packID)
 
 	// Build ZIP container (metode Store / uncompressed) sesuai spesifikasi WA sticker pack
 	zipBuf := new(bytes.Buffer)
@@ -39,11 +40,13 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	var stickers []*waE2E.StickerPackMessage_Sticker
 
-	for i, itemData := range stickerItems {
+	for _, itemData := range stickerItems {
 		h := sha256.Sum256(itemData)
-		// Gunakan RawURLEncoding (tanpa padding '=') persis seperti WhatsApp client
-		b64Hash := base64.RawURLEncoding.EncodeToString(h[:])
-		fileName := b64Hash + ".webp"
+		// Format hash Base64 yang menggantikan '/' dengan '-' persis seperti Baileys/WhatsApp Android:
+		// const hash = sha256(webpBuffer).toString('base64').replace(/\//g, '-');
+		b64Hash := base64.StdEncoding.EncodeToString(h[:])
+		b64Clean := strings.ReplaceAll(b64Hash, "/", "-")
+		fileName := b64Clean + ".webp"
 
 		w, err := zw.CreateHeader(&zip.FileHeader{
 			Name:   fileName,
@@ -57,10 +60,10 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		}
 
 		stickers = append(stickers, &waE2E.StickerPackMessage_Sticker{
-			Emojis:             []string{""},
+			Emojis:             []string{"✨"},
 			FileName:           proto.String(fileName),
 			IsAnimated:         proto.Bool(false),
-			AccessibilityLabel: proto.String(fmt.Sprintf("%s #%d", packName, i+1)),
+			AccessibilityLabel: proto.String("‎"),
 			IsLottie:           proto.Bool(false),
 			Mimetype:           proto.String("image/webp"),
 		})
@@ -140,7 +143,6 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 	}
 
 	origin := waE2E.StickerPackMessage_USER_CREATED
-	disappearingModeInitiator := waE2E.DisappearingMode_CHANGED_IN_CHAT
 
 	msg := &waE2E.Message{
 		StickerPackMessage: &waE2E.StickerPackMessage{
@@ -153,7 +155,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 			FileEncSHA256:       uploadedZip.FileEncSHA256,
 			MediaKey:            uploadedZip.MediaKey,
 			DirectPath:          proto.String(uploadedZip.DirectPath),
-			PackDescription:     proto.String(fmt.Sprintf("%s (%d stickers)", packName, len(stickers))),
+			PackDescription:     proto.String(packName),
 			MediaKeyTimestamp:   proto.Int64(time.Now().Unix()),
 			TrayIconFileName:    proto.String(trayIconFileName),
 			ThumbnailDirectPath: proto.String(thumbDirectPath),
@@ -164,14 +166,6 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 			ImageDataHash:       proto.String(imageDataHash),
 			StickerPackSize:     proto.Uint64(uint64(len(zipBytes))),
 			StickerPackOrigin:   &origin,
-			ContextInfo: &waE2E.ContextInfo{
-				IsForwarded:     proto.Bool(true),
-				ForwardingScore: proto.Uint32(1),
-				Expiration:      proto.Uint32(86400),
-				DisappearingMode: &waE2E.DisappearingMode{
-					Initiator: &disappearingModeInitiator,
-				},
-			},
 		},
 	}
 
