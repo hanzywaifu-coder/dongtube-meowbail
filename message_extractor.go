@@ -144,3 +144,35 @@ func GetDevice(id string) string {
 	}
 	return "unknown"
 }
+
+// IsRealMessage memvalidasi apakah payload merupakan pesan konten nyata yang ditujukan untuk pengguna (bukan protokol sinkronisasi/reaksi semata)
+func IsRealMessage(msg *waE2E.Message) bool {
+	if msg == nil {
+		return false
+	}
+	if msg.ProtocolMessage != nil || msg.ReactionMessage != nil || msg.EncReactionMessage != nil || msg.PollUpdateMessage != nil {
+		return false
+	}
+	return msg.Conversation != nil ||
+		msg.ExtendedTextMessage != nil ||
+		msg.ImageMessage != nil ||
+		msg.VideoMessage != nil ||
+		msg.AudioMessage != nil ||
+		msg.DocumentMessage != nil ||
+		msg.StickerMessage != nil ||
+		msg.ContactMessage != nil ||
+		msg.LocationMessage != nil ||
+		msg.LiveLocationMessage != nil ||
+		msg.ButtonsResponseMessage != nil ||
+		msg.ListResponseMessage != nil ||
+		msg.TemplateButtonReplyMessage != nil ||
+		msg.InteractiveResponseMessage != nil ||
+		msg.PollCreationMessage != nil ||
+		msg.PollCreationMessageV2 != nil ||
+		msg.PollCreationMessageV3 != nil ||
+		msg.EventMessage != nil ||
+		msg.ViewOnceMessage != nil ||
+		msg.ViewOnceMessageV2 != nil ||
+		msg.DocumentWithCaptionMessage != nil ||
+		msg.EditedMessage != nil
+}
