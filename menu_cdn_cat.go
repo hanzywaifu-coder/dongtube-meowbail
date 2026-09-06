@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -13,7 +14,7 @@ import (
 )
 
 // SendRawCDNMenuWithContent mengirim menu native flow A2UI persis CDN Dongtube dengan body teks konten custom
-func (c *Client) SendRawCDNMenuWithContent(ctx context.Context, chat types.JID, thumbBytes []byte, headerTitle, customBodyText string) error {
+func (c *Client) SendRawCDNMenuWithContent(ctx context.Context, chat types.JID, thumbBytes []byte, headerTitle, customBodyText string, customCtx ...*waE2E.ContextInfo) error {
 	secretBytes, _ := base64.StdEncoding.DecodeString("IXM8c2x6FioXJZLibSUFkhheds8R4KQtoWqKWvhwIkY=")
 
 	catParamsJSON := `{"title":"\u0000","sections":[{"title":"ᴋᴀᴛᴇɢᴏʀɪ","highlight_label":"ᴍᴏʀᴇʟᴀ ᴍᴇɴᴜ","rows":[{"title":"ᴀɪ","description":"3 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_ai"},{"title":"ᴅᴏᴡɴʟᴏᴀᴅᴇʀ","description":"12 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_downloader"},{"title":"ꜱᴛɪᴄᴋᴇʀ","description":"13 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_sticker"},{"title":"ᴍᴀᴋᴇʀ","description":"3 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_maker"},{"title":"ᴛᴏᴏʟꜱ","description":"26 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_tools"},{"title":"ɢᴀᴍᴇꜱ","description":"72 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_games"},{"title":"ɴꜱꜰᴡ","description":"40 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_nsfw"},{"title":"ɪɴꜰᴏ","description":"6 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_info"},{"title":"ᴀᴅᴍɪɴ","description":"24 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_admin"},{"title":"ᴏᴡɴᴇʀ","description":"41 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_owner"},{"title":"ꜰᴜɴ","description":"3 ᴄᴏᴍᴍᴀɴᴅ","id":".menu_fun"}]}],"icon":"DEFAULT"}`
@@ -22,10 +23,18 @@ func (c *Client) SendRawCDNMenuWithContent(ctx context.Context, chat types.JID, 
 
 	ctaParamsJSON := `{"display_text":"\u0000","url":"https://wa.me/6283143961588","merchant_url":"https://wa.me/6283143961588","icon":"PROMOTION"}`
 
-	// limited_time_offer banner di atas tombol interactive menu
-	// text diisi nama bot agar tidak muncul "Tawaran telah berakhir", expiration_time dibuat jauh ke depan (tahun 2038)
-	// copy_code otomatis disalin ke clipboard pengguna saat diklik
-	offerParamsJSON := `{"limited_time_offer":{"text":"Dongtube Bot Assistant","url":"https://wa.me/6283143961588","copy_code":"Dongtube Bot Assistant - https://wa.me/6283143961588","expiration_time":2147483647000}}`
+	// Ambil waktu saat ini + 30 hari dalam millisecond agar limited_time_offer selalu aktif & fresh
+	expTime := time.Now().Add(30 * 24 * time.Hour).UnixMilli()
+	offerMap := map[string]interface{}{
+		"limited_time_offer": map[string]interface{}{
+			"text":            "Dongtube Bot Assistant",
+			"url":             "https://wa.me/6283143961588",
+			"copy_code":       "Dongtube Bot Assistant - https://wa.me/6283143961588",
+			"expiration_time": expTime,
+		},
+	}
+	offerParamsBytes, _ := json.Marshal(offerMap)
+	offerParamsJSON := string(offerParamsBytes)
 
 	escapedBody, _ := json.Marshal(customBodyText)
 	// Buat A2UI Bloks Widget dengan teks isi kategori
@@ -71,7 +80,12 @@ func (c *Client) SendRawCDNMenuWithContent(ctx context.Context, chat types.JID, 
 				Data: proto.String(bloksDataRaw),
 				Type: proto.String("im_a2ui"),
 			},
-			ContextInfo: buildNewsletterContext(c.config),
+			ContextInfo: func() *waE2E.ContextInfo {
+				if len(customCtx) > 0 && customCtx[0] != nil {
+					return customCtx[0]
+				}
+				return buildNewsletterContext(c.config)
+			}(),
 		},
 	}
 
