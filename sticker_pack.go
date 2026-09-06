@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"go.mau.fi/whatsmeow"
-	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 	"google.golang.org/protobuf/proto"
@@ -93,10 +92,10 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 
 	zipBytes := zipBuf.Bytes()
 
-	// 1. WhatsApp media type untuk ZIP sticker pack adalah MediaDocument / MediaAppState
-	uploadedZip, err := c.UploadMedia(ctx, zipBytes, whatsmeow.MediaDocument)
+	// 1. Upload ZIP stiker pack dengan MediaType resmi MediaStickerPack
+	uploadedZip, err := c.UploadMedia(ctx, zipBytes, whatsmeow.MediaStickerPack)
 	if err != nil {
-		uploadedZip, err = c.UploadMedia(ctx, zipBytes, whatsmeow.MediaStickerPack)
+		uploadedZip, err = c.UploadMedia(ctx, zipBytes, whatsmeow.MediaDocument)
 		if err != nil {
 			return fmt.Errorf("upload zip sticker pack: %w", err)
 		}
@@ -176,18 +175,7 @@ func (c *Client) SendStickerPackMultipleMedia(ctx context.Context, chat types.JI
 		},
 	}
 
-	additionalNodes := []waBinary.Node{
-		{
-			Tag: "biz",
-			Attrs: waBinary.Attrs{
-				"type": "media",
-			},
-		},
-	}
-
-	_, err = c.Client.SendMessage(ctx, chat, msg, whatsmeow.SendRequestExtra{
-		AdditionalNodes: &additionalNodes,
-	})
+	_, err = c.Client.SendMessage(ctx, chat, msg)
 	return err
 }
 
