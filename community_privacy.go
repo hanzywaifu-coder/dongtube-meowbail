@@ -101,6 +101,11 @@ func (c *Client) CommunityGetInviteLink(ctx context.Context, communityJID types.
 	return c.Client.GetGroupInviteLink(ctx, communityJID, reset)
 }
 
+// CommunityAcceptInvite bergabung ke Komunitas WhatsApp via invite code
+func (c *Client) CommunityAcceptInvite(ctx context.Context, code string) (types.JID, error) {
+	return c.Client.JoinGroupWithLink(ctx, code)
+}
+
 // CommunityParticipantsUpdate memperbarui status partisipan di komunitas (promote, demote, remove dari seluruh grup terkait)
 func (c *Client) CommunityParticipantsUpdate(ctx context.Context, communityJID types.JID, participants []types.JID, action whatsmeow.ParticipantChange) ([]types.GroupParticipant, error) {
 	if action == whatsmeow.ParticipantChangeRemove {
